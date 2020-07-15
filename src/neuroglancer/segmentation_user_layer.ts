@@ -63,6 +63,8 @@ import {ShaderCodeWidget} from 'neuroglancer/widget/shader_code_widget';
 import {ShaderControls} from 'neuroglancer/widget/shader_controls';
 import {Tab} from 'neuroglancer/widget/tab_view';
 import {VirtualList, VirtualListSource} from 'neuroglancer/widget/virtual_list';
+import {PickState} from 'neuroglancer/layer';
+import {AraAtlas} from 'neuroglancer/ui/ara_atlas';
 
 const SELECTED_ALPHA_JSON_KEY = 'selectedAlpha';
 const NOT_SELECTED_ALPHA_JSON_KEY = 'notSelectedAlpha';
@@ -125,6 +127,11 @@ export class SegmentationUserLayer extends Base {
     this.manager.root.selectedLayer.layer = this.managedLayer;
   };
 
+  /**
+  * Atlas to use for id lookup.
+  */
+  atlas: AraAtlas|null|undefined = null;
+  
   displayState = {
     segmentColorHash: SegmentColorHash.getDefault(),
     segmentStatedColors: Uint64Map.makeWithCounterpart(this.manager.worker),
@@ -153,6 +160,9 @@ export class SegmentationUserLayer extends Base {
 
   constructor(managedLayer: Borrowed<ManagedUserLayer>, specification: any) {
     super(managedLayer, specification);
+
+    this.atlas = new AraAtlas();
+
     this.displayState.visibleSegments.changed.add(this.specificationChanged.dispatch);
     this.displayState.segmentEquivalences.changed.add(this.specificationChanged.dispatch);
     this.displayState.segmentSelectionState.bindTo(this.manager.layerSelectedValues, this);
@@ -176,6 +186,22 @@ export class SegmentationUserLayer extends Base {
     this.tabs.default = 'rendering';
   }
 
+  /* Kludge to catch changes to the voxel state (e.g., mouse movement).
+  A better solution would tap directly into LayerSelectedValues.values and update on render only.
+  */
+  ontfield: HTMLElement | null = document.getElementById('onttext');
+  oldvalue: any|null|undefined;
+  getValueAt(position: Float32Array, pickState: PickState) {
+   let newvalue = super.getValueAt(position, pickState);
+   if (newvalue !== null && (+newvalue !== +this.oldvalue)) {
+     console.log('I got a new value! ' + newvalue + ' vs ' + this.oldvalue);
+     if (! (typeof this.atlas === 'undefined' || this.atlas === null) && (this.ontfield != null)) {
+               this.ontfield.innerHTML = '' + this.atlas.getNameForId(+newvalue.toString());
+     }
+   }
+   this.oldvalue = newvalue;
+   return newvalue;
+  } 
   get volumeOptions() {
     return {volumeType: VolumeType.SEGMENTATION};
   }
