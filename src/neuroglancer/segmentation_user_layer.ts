@@ -66,6 +66,7 @@ import {Tab} from 'neuroglancer/widget/tab_view';
 import {VirtualList, VirtualListSource} from 'neuroglancer/widget/virtual_list';
 import {PickState} from 'neuroglancer/layer';
 import {AraAtlas} from 'neuroglancer/ui/ara_atlas';
+import {PmaAtlas} from 'neuroglancer/ui/pma_atlas';
 
 const SELECTED_ALPHA_JSON_KEY = 'selectedAlpha';
 const NOT_SELECTED_ALPHA_JSON_KEY = 'notSelectedAlpha';
@@ -237,6 +238,9 @@ export class SegmentationUserLayer extends Base {
           if (volume.atlasType) {
           if (volume.atlasType == 'Allen') {
             this.atlas =  new AraAtlas();
+            }
+          else if (volume.atlasType == 'Princeton') {
+            this.atlas = new PmaAtlas();
             } 
           }
         }
