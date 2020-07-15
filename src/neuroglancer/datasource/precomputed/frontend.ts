@@ -331,7 +331,8 @@ async function getMeshMetadata(
   try {
     metadata = await getJsonMetadata(chunkManager, url);
   } catch (e) {
-    if (e instanceof HttpError && (e.status === 404 || e.status === 403)) {
+    if (e instanceof HttpError && (e.status === 404 || e.status === 403 || e.status === 0)) {
+      console.log("caught error");
       // If we fail to fetch the info file, assume it is the legacy
       // single-resolution mesh format.
       return {metadata: undefined};
