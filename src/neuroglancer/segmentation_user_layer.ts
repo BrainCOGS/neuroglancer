@@ -32,6 +32,7 @@ import {SharedDisjointUint64Sets} from 'neuroglancer/shared_disjoint_sets';
 import {PerspectiveViewSkeletonLayer, SkeletonLayer, SkeletonRenderingOptions, SliceViewPanelSkeletonLayer, ViewSpecificSkeletonRenderingOptions} from 'neuroglancer/skeleton/frontend';
 import {DataType, VolumeType} from 'neuroglancer/sliceview/volume/base';
 import {MultiscaleVolumeChunkSource} from 'neuroglancer/sliceview/volume/frontend';
+import {PrecomputedMultiscaleVolumeChunkSource} from 'neuroglancer/datasource/precomputed/frontend';
 import {SegmentationRenderLayer} from 'neuroglancer/sliceview/volume/segmentation_renderlayer';
 import {trackableAlphaValue} from 'neuroglancer/trackable_alpha';
 import {TrackableBoolean, TrackableBooleanCheckbox} from 'neuroglancer/trackable_boolean';
@@ -131,7 +132,7 @@ export class SegmentationUserLayer extends Base {
   * Atlas to use for id lookup.
   */
   atlas: AraAtlas|null|undefined = null;
-  
+  atlasType: string|undefined
   displayState = {
     segmentColorHash: SegmentColorHash.getDefault(),
     segmentStatedColors: Uint64Map.makeWithCounterpart(this.manager.worker),
@@ -161,7 +162,7 @@ export class SegmentationUserLayer extends Base {
   constructor(managedLayer: Borrowed<ManagedUserLayer>, specification: any) {
     super(managedLayer, specification);
 
-    this.atlas = new AraAtlas();
+    // this.atlas = new AraAtlas();
 
     this.displayState.visibleSegments.changed.add(this.specificationChanged.dispatch);
     this.displayState.segmentEquivalences.changed.add(this.specificationChanged.dispatch);
@@ -186,22 +187,24 @@ export class SegmentationUserLayer extends Base {
     this.tabs.default = 'rendering';
   }
 
-  /* Kludge to catch changes to the voxel state (e.g., mouse movement).
-  A better solution would tap directly into LayerSelectedValues.values and update on render only.
-  */
+  // Update the ontfield div text with atlas label of whatever segment has cursor focus
   ontfield: HTMLElement | null = document.getElementById('onttext');
   oldvalue: any|null|undefined;
   getValueAt(position: Float32Array, pickState: PickState) {
-   let newvalue = super.getValueAt(position, pickState);
-   if (newvalue !== null && (+newvalue !== +this.oldvalue)) {
-     console.log('I got a new value! ' + newvalue + ' vs ' + this.oldvalue);
-     if (! (typeof this.atlas === 'undefined' || this.atlas === null) && (this.ontfield != null)) {
-               this.ontfield.innerHTML = '' + this.atlas.getNameForId(+newvalue.toString());
+   if (this.atlas !== null) {
+     let newvalue = super.getValueAt(position, pickState);
+     if (newvalue !== null && newvalue !== undefined && (+newvalue !== +this.oldvalue)) {
+       if (! (typeof this.atlas === 'undefined' || this.atlas === null) && (this.ontfield != null)) {
+                 this.ontfield.innerHTML = '' + this.atlas.getNameForId(+newvalue.toString());
+       } 
      }
-   }
-   this.oldvalue = newvalue;
-   return newvalue;
-  } 
+     this.oldvalue = newvalue;
+     return newvalue;
+    } else {
+      let newvalue = super.getValueAt(position, pickState);
+      return newvalue;
+    }
+  }
   get volumeOptions() {
     return {volumeType: VolumeType.SEGMENTATION};
   }
@@ -228,7 +231,15 @@ export class SegmentationUserLayer extends Base {
     for (const loadedSubsource of subsources) {
       if (this.addStaticAnnotations(loadedSubsource)) continue;
       const {volume, mesh, segmentPropertyMap} = loadedSubsource.subsourceEntry.subsource;
+
       if (volume instanceof MultiscaleVolumeChunkSource) {
+        if (volume instanceof PrecomputedMultiscaleVolumeChunkSource) {
+          if (volume.atlasType) {
+          if (volume.atlasType == 'Allen') {
+            this.atlas =  new AraAtlas();
+            } 
+          }
+        }
         switch (volume.dataType) {
           case DataType.FLOAT32:
             loadedSubsource.deactivate('Data type not compatible with segmentation layer');
@@ -280,6 +291,7 @@ export class SegmentationUserLayer extends Base {
     if (!arraysEqual(updatedSegmentPropertyMaps, this.displayState.segmentPropertyMaps.value)) {
       this.displayState.segmentPropertyMaps.value = updatedSegmentPropertyMaps;
     }
+
   }
 
   getLegacyDataSourceSpecifications(
@@ -367,7 +379,10 @@ export class SegmentationUserLayer extends Base {
     this.sliceViewRenderScaleTarget.restoreState(
         specification[CROSS_SECTION_RENDER_SCALE_JSON_KEY]);
     this.segmentQuery.restoreState(specification[SEGMENT_QUERY_JSON_KEY]);
+
+   
   }
+
 
   toJSON() {
     const x = super.toJSON();

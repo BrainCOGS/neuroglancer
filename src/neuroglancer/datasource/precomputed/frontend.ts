@@ -132,6 +132,7 @@ interface MultiscaleVolumeInfo {
   segmentPropertyMap: string|undefined;
   scales: ScaleInfo[];
   modelSpace: CoordinateSpace;
+  atlasType: string|undefined /* for referencing static atlas */
 }
 
 function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
@@ -144,6 +145,7 @@ function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
   const segmentPropertyMap = verifyObjectProperty(obj, 'segment_properties', verifyOptionalString);
   const scaleInfos =
       verifyObjectProperty(obj, 'scales', x => parseArray(x, y => new ScaleInfo(y, numChannels)));
+  const atlasType = verifyObjectProperty(obj, 'atlas_type', verifyOptionalString);    
   if (scaleInfos.length === 0) throw new Error('Expected at least one scale');
   const baseScale = scaleInfos[0];
   const rank = (numChannels === 1) ? 3 : 4;
@@ -179,11 +181,12 @@ function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
     skeletons,
     segmentPropertyMap,
     scales: scaleInfos,
-    modelSpace
+    modelSpace,
+    atlasType
   };
 }
 
-class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource {
+export class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource {
   get dataType() {
     return this.info.dataType;
   }
@@ -194,6 +197,10 @@ class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource
 
   get rank() {
     return this.info.modelSpace.rank;
+  }
+
+  get atlasType() {
+    return this.info.atlasType;
   }
 
   constructor(chunkManager: ChunkManager, public url: string, public info: MultiscaleVolumeInfo) {
@@ -332,7 +339,6 @@ async function getMeshMetadata(
     metadata = await getJsonMetadata(chunkManager, url);
   } catch (e) {
     if (e instanceof HttpError && (e.status === 404 || e.status === 403 || e.status === 0)) {
-      console.log("caught error");
       // If we fail to fetch the info file, assume it is the legacy
       // single-resolution mesh format.
       return {metadata: undefined};
