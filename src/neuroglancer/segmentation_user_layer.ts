@@ -45,7 +45,7 @@ import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce
 import {arraysEqual, ArraySpliceOp, binarySearchLowerBound, getMergeSplices} from 'neuroglancer/util/array';
 import {setClipboard} from 'neuroglancer/util/clipboard';
 import {packColor, parseRGBColorSpecification} from 'neuroglancer/util/color';
-// import {vec3} from 'neuroglancer/util/geom';
+import {vec3} from 'neuroglancer/util/geom';
 import {Borrowed, RefCounted} from 'neuroglancer/util/disposable';
 import {parseArray, verifyFiniteNonNegativeFloat, verifyObjectAsMap, verifyObjectProperty, verifyOptionalObjectProperty, verifyString} from 'neuroglancer/util/json';
 import {ActionEvent, EventActionMap, KeyboardEventBinder, registerActionListener} from 'neuroglancer/util/keyboard_bindings';
@@ -1013,15 +1013,37 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
     tempUint64.tryParseString(idString);
     const {children} = element;
     const checkbox = children[1] as HTMLInputElement;
-    // const idElement = children[2] as HTMLInputElement;
-    // const idColorElement = children[3] as HTMLInputElement;
+    const idElement = children[2] as HTMLInputElement;
+    const idColorElement = children[3] as HTMLInputElement;
     const {visibleSegments} = this.segmentationDisplayState;
     checkbox.checked = visibleSegments.has(tempUint64);
-    // idElement.style.backgroundColor =
-    //     getCssColor(getBaseObjectColor(this.segmentationDisplayState, tempUint64));
+    idElement.style.backgroundColor =
+        getCssColor(getBaseObjectColor(this.segmentationDisplayState, tempUint64));
     // console.log("Checking current color of id:")
+    // console.log(idString);
     // console.log(idColorElement.value);
-    // let idUint64 = Uint64.parseString(String(idString));
+    // Check to see if ID is in the segmentStatedColors map 
+    let idUint64 = Uint64.parseString(String(idString));
+    // console.log(this.segmentationDisplayState.segmentStatedColors.toJSON())
+    if (this.segmentationDisplayState.segmentStatedColors.has(idUint64)) {
+      let this_segment_color = new Uint64();
+      this.segmentationDisplayState.segmentStatedColors.get(idUint64,this_segment_color);
+      console.log(idUint64 + ' is in segment stated colors map');
+      // console.log("Segment color is:")
+      // console.log(this_segment_color);
+      let hex_color =  '#' + this_segment_color.toString(16).padStart(6, '0');
+      // console.log(hex_color);
+      idColorElement.value = hex_color;
+    }
+    else {
+      console.log(idUint64 + ' NOT in segment stated colors map'); 
+      let color_array = getBaseObjectColor(this.segmentationDisplayState, tempUint64)
+      let color_vec = <vec3>color_array.subarray(0, 3);
+      const this_segment_color = new Uint64(packColor(color_vec));
+      let hex_color =  '#' + this_segment_color.toString(16).padStart(6, '0');
+      // console.log(hex_color);
+      idColorElement.value = hex_color;
+    }
     // let new_hex_color = idColorElement.value.slice(1); // removes the "#" at the beginning
     // let new_color = new Uint64(parseInt(new_hex_color,16)) // converts from 16-bit hex back to int, then casts as Uint64
     // // console.log(idUint64);
@@ -1030,13 +1052,10 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
     // // console.log(test_color)
     // this.segmentationDisplayState.segmentStatedColors.set(idUint64, new_color);
     // console.log(this.segmentationDisplayState.segmentStatedColors.toJSON());
-    // let color_array = getBaseObjectColor(this.segmentationDisplayState, tempUint64)
-    // let color_vec = <vec3>color_array.subarray(0, 3);
-    // const this_segment_color = new Uint64(packColor(color_vec));
-    // let hex_color =  '#' + this_segment_color.toString(16).padStart(6, '0');
+    
     // console.log(this_segment_color);
-    // console.log(hex_color);
-    // idColorElement.value = hex_color;
+    
+    
   }
 
   render = (() => {
@@ -1055,7 +1074,6 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
     const idElement = document.createElement('span');
     idElement.classList.add('neuroglancer-segment-list-entry-id');
     containerTemplate.appendChild(idElement);
-
     const idColorElement = document.createElement('input');
     idColorElement.type = 'color';
     idColorElement.classList.add('neuroglancer-segment-id-color-picker');
@@ -1108,14 +1126,13 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       setClipboard(this.parentElement!.dataset.id!);
       event.stopPropagation();
     }
-    function testInputHandler(this: HTMLElement) {
-      // const idString = this.parentElement!.dataset.id!;
-      // alert(idString);
-      console.log("Color inputted!");
-    }
-    function testChangeHandler(this: HTMLInputElement) {
+    function testInputHandler(this: HTMLInputElement) {
       const idString = this.parentElement!.dataset.id!;
       let idUint64 = Uint64.parseString(String(idString));
+      if (segmentationDisplayState.segmentStatedColors.has(idUint64) ) {
+        segmentationDisplayState.segmentStatedColors.delete(idUint64);
+      }
+
       // let color_array = getBaseObjectColor(this.segmentationDisplayState, idUint64)
       // let color_vec = <vec3>color_array.subarray(0, 3);
       // const color = new Uint64(packColor(color_vec));
@@ -1125,11 +1142,28 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       let new_hex_color = this.value.slice(1); // removes the "#" at the beginning
       let new_color = new Uint64(parseInt(new_hex_color,16))
       segmentationDisplayState.segmentStatedColors.set(idUint64,new_color);
+      console.log(segmentationDisplayState.segmentStatedColors.toJSON());
       console.log("Color changed to:");
       console.log(new_hex_color);
-      console.log(new_color);
-      return new_color
     }
+    // function testChangeHandler(this: HTMLInputElement) {
+    //   const idString = this.parentElement!.dataset.id!;
+    //   let idUint64 = Uint64.parseString(String(idString));
+    //   // let color_array = getBaseObjectColor(this.segmentationDisplayState, idUint64)
+    //   // let color_vec = <vec3>color_array.subarray(0, 3);
+    //   // const color = new Uint64(packColor(color_vec));
+    //   // this.displayState.segmentStatedColors.set(idUint64, color);
+    //   // // const idString = this.parentElement!.dataset.id!;
+    //   // // alert(idString);
+    //   let new_hex_color = this.value.slice(1); // removes the "#" at the beginning
+    //   let new_color = new Uint64(parseInt(new_hex_color,16))
+    //   segmentationDisplayState.segmentStatedColors.set(idUint64,new_color);
+    //   console.log(segmentationDisplayState.segmentStatedColors.toJSON());
+    //   console.log("Color changed to:");
+    //   console.log(new_hex_color);
+    //   // console.log(new_color);
+    //   return new_color
+    // }
     const {segmentSelectionState} = segmentationDisplayState;
     return (index: number) => {
       const {sortedVisibleSegments, segmentLabelMap} = this;
@@ -1165,7 +1199,7 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       const idElement = children[2];
       const idColorElement = children[3];
       idColorElement.addEventListener('input', testInputHandler);
-      idColorElement.addEventListener('change', testChangeHandler);
+      // idColorElement.addEventListener('change', testChangeHandler);
       const nameElement = children[5];
       container.dataset.id = idString;
       idElement.textContent = idString;
@@ -1310,6 +1344,8 @@ class SegmentDisplayTab extends Tab {
                   parent.appendChild(selectionStatusContainer);
                   let prevNumSelected = -1;
                   const updateStatus = () => {
+                    // console.log("Now here");
+                    // console.log(layer.displayState.visibleSegments.toJSON());
                     const numSelected = layer.displayState.visibleSegments.size;
                     if (prevNumSelected !== numSelected) {
                       prevNumSelected = numSelected;
@@ -1339,6 +1375,7 @@ class SegmentDisplayTab extends Tab {
                   };
                   updateStatus();
                   listSource.statusText.changed.add(updateStatus);
+
                   context.registerDisposer(
                       layer.displayState.visibleSegments.changed.add(updateStatus));
                   let hasConfirmed = false;
