@@ -72,6 +72,20 @@
   width: var(--neuroglancer-segment-list-width);
 }
 
+.neuroglancer-segment-id-color-picker {
+  display: inline-block;
+  font-family: monospace;
+  font-size: medium;
+  flex-shrink: 0;
+  text-align: right;
+  /*margin-right: -5px;*/
+  margin-left: 5px;
+  color: black;
+  background-color: white;
+  user-select: text;
+  width: var(--neuroglancer-segment-list-width);
+}
+
 .neuroglancer-segment-list-entry-name {
   display: inline-block;
   font-family: monospace;
