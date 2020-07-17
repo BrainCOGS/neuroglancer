@@ -45,6 +45,7 @@ import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce
 import {arraysEqual, ArraySpliceOp, binarySearchLowerBound, getMergeSplices} from 'neuroglancer/util/array';
 import {setClipboard} from 'neuroglancer/util/clipboard';
 import {packColor, parseRGBColorSpecification} from 'neuroglancer/util/color';
+// import {vec3} from 'neuroglancer/util/geom';
 import {Borrowed, RefCounted} from 'neuroglancer/util/disposable';
 import {parseArray, verifyFiniteNonNegativeFloat, verifyObjectAsMap, verifyObjectProperty, verifyOptionalObjectProperty, verifyString} from 'neuroglancer/util/json';
 import {ActionEvent, EventActionMap, KeyboardEventBinder, registerActionListener} from 'neuroglancer/util/keyboard_bindings';
@@ -67,6 +68,8 @@ import {VirtualList, VirtualListSource} from 'neuroglancer/widget/virtual_list';
 import {PickState} from 'neuroglancer/layer';
 import {AraAtlas} from 'neuroglancer/ui/ara_atlas';
 import {PmaAtlas} from 'neuroglancer/ui/pma_atlas';
+// import {ColorWidget} from 'neuroglancer/widget/color';
+
 
 const SELECTED_ALPHA_JSON_KEY = 'selectedAlpha';
 const NOT_SELECTED_ALPHA_JSON_KEY = 'notSelectedAlpha';
@@ -1010,12 +1013,30 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
     tempUint64.tryParseString(idString);
     const {children} = element;
     const checkbox = children[1] as HTMLInputElement;
-    const idElement = children[2] as HTMLElement;
+    // const idElement = children[2] as HTMLInputElement;
+    // const idColorElement = children[3] as HTMLInputElement;
     const {visibleSegments} = this.segmentationDisplayState;
     checkbox.checked = visibleSegments.has(tempUint64);
-    idElement.style.backgroundColor =
-        getCssColor(getBaseObjectColor(this.segmentationDisplayState, tempUint64));
-    idElement.textContent = idString;
+    // idElement.style.backgroundColor =
+    //     getCssColor(getBaseObjectColor(this.segmentationDisplayState, tempUint64));
+    // console.log("Checking current color of id:")
+    // console.log(idColorElement.value);
+    // let idUint64 = Uint64.parseString(String(idString));
+    // let new_hex_color = idColorElement.value.slice(1); // removes the "#" at the beginning
+    // let new_color = new Uint64(parseInt(new_hex_color,16)) // converts from 16-bit hex back to int, then casts as Uint64
+    // // console.log(idUint64);
+    // // let test_color = new Uint64(15939583);
+    // // test_color.high = 15939583
+    // // console.log(test_color)
+    // this.segmentationDisplayState.segmentStatedColors.set(idUint64, new_color);
+    // console.log(this.segmentationDisplayState.segmentStatedColors.toJSON());
+    // let color_array = getBaseObjectColor(this.segmentationDisplayState, tempUint64)
+    // let color_vec = <vec3>color_array.subarray(0, 3);
+    // const this_segment_color = new Uint64(packColor(color_vec));
+    // let hex_color =  '#' + this_segment_color.toString(16).padStart(6, '0');
+    // console.log(this_segment_color);
+    // console.log(hex_color);
+    // idColorElement.value = hex_color;
   }
 
   render = (() => {
@@ -1030,14 +1051,21 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
     copyButton.classList.add('neuroglancer-segment-list-entry-copy');
     containerTemplate.appendChild(copyButton);
     containerTemplate.appendChild(checkbox);
+    
     const idElement = document.createElement('span');
     idElement.classList.add('neuroglancer-segment-list-entry-id');
     containerTemplate.appendChild(idElement);
+
+    const idColorElement = document.createElement('input');
+    idColorElement.type = 'color';
+    idColorElement.classList.add('neuroglancer-segment-id-color-picker');
+    containerTemplate.appendChild(idColorElement);
     const filterElement = makeFilterButton({
       title: 'Filter by label',
     });
     filterElement.classList.add('neuroglancer-segment-list-entry-filter');
     containerTemplate.appendChild(filterElement);
+
     const nameElement = document.createElement('span');
     nameElement.classList.add('neuroglancer-segment-list-entry-name');
     containerTemplate.appendChild(nameElement);
@@ -1080,6 +1108,28 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       setClipboard(this.parentElement!.dataset.id!);
       event.stopPropagation();
     }
+    function testInputHandler(this: HTMLElement) {
+      // const idString = this.parentElement!.dataset.id!;
+      // alert(idString);
+      console.log("Color inputted!");
+    }
+    function testChangeHandler(this: HTMLInputElement) {
+      const idString = this.parentElement!.dataset.id!;
+      let idUint64 = Uint64.parseString(String(idString));
+      // let color_array = getBaseObjectColor(this.segmentationDisplayState, idUint64)
+      // let color_vec = <vec3>color_array.subarray(0, 3);
+      // const color = new Uint64(packColor(color_vec));
+      // this.displayState.segmentStatedColors.set(idUint64, color);
+      // // const idString = this.parentElement!.dataset.id!;
+      // // alert(idString);
+      let new_hex_color = this.value.slice(1); // removes the "#" at the beginning
+      let new_color = new Uint64(parseInt(new_hex_color,16))
+      segmentationDisplayState.segmentStatedColors.set(idUint64,new_color);
+      console.log("Color changed to:");
+      console.log(new_hex_color);
+      console.log(new_color);
+      return new_color
+    }
     const {segmentSelectionState} = segmentationDisplayState;
     return (index: number) => {
       const {sortedVisibleSegments, segmentLabelMap} = this;
@@ -1105,7 +1155,7 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       const {children} = container;
       const checkbox = children[1];
       checkbox.addEventListener('change', checkboxHandler);
-      const filterElement = children[3];
+      const filterElement = children[4];
       filterElement.addEventListener('click', filterHandler);
       container.addEventListener('mouseenter', onMouseEnter);
       container.addEventListener('mouseleave', onMouseLeave);
@@ -1113,7 +1163,10 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       copyButton.addEventListener('click', copyHandler);
       container.addEventListener('action:select-position', selectHandler);
       const idElement = children[2];
-      const nameElement = children[4];
+      const idColorElement = children[3];
+      idColorElement.addEventListener('input', testInputHandler);
+      idColorElement.addEventListener('change', testChangeHandler);
+      const nameElement = children[5];
       container.dataset.id = idString;
       idElement.textContent = idString;
       nameElement.textContent = name || '';
@@ -1124,8 +1177,7 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       updateIdStringWidth(segmentationDisplayState.maxIdLength, idString);
       return container;
     };
-  })();
-
+  })(); // end render()
   updateRenderedItems(list: VirtualList) {
     const {segmentSelectionState} = this.segmentationDisplayState;
     const idString = segmentSelectionState.hasSelectedSegment ?
