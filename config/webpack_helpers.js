@@ -221,7 +221,7 @@ function getBaseConfig(options) {
     devServer: {
       compress: true,
       disableHostCheck: true,   // That solved it
-    } 
+    }, 
     module: {
       defaultRules: [
         {
