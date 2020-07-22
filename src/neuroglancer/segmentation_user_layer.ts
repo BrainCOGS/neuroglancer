@@ -980,42 +980,20 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
     checkbox.checked = visibleSegments.has(tempUint64);
     idElement.style.backgroundColor =
         getCssColor(getBaseObjectColor(this.segmentationDisplayState, tempUint64));
-    // console.log("Checking current color of id:")
-    // console.log(idString);
-    // console.log(idColorElement.value);
-    // Check to see if ID is in the segmentStatedColors map 
     let idUint64 = Uint64.parseString(String(idString));
-    // console.log(this.segmentationDisplayState.segmentStatedColors.toJSON())
     if (this.segmentationDisplayState.segmentStatedColors.has(idUint64)) {
       let this_segment_color = new Uint64();
       this.segmentationDisplayState.segmentStatedColors.get(idUint64,this_segment_color);
-      console.log(idUint64 + ' is in segment stated colors map');
-      // console.log("Segment color is:")
-      // console.log(this_segment_color);
       let hex_color =  '#' + this_segment_color.toString(16).padStart(6, '0');
-      // console.log(hex_color);
       idColorElement.value = hex_color;
     }
     else {
-      console.log(idUint64 + ' NOT in segment stated colors map'); 
       let color_array = getBaseObjectColor(this.segmentationDisplayState, tempUint64)
       let color_vec = <vec3>color_array.subarray(0, 3);
       const this_segment_color = new Uint64(packColor(color_vec));
       let hex_color =  '#' + this_segment_color.toString(16).padStart(6, '0');
-      // console.log(hex_color);
       idColorElement.value = hex_color;
     }
-    // let new_hex_color = idColorElement.value.slice(1); // removes the "#" at the beginning
-    // let new_color = new Uint64(parseInt(new_hex_color,16)) // converts from 16-bit hex back to int, then casts as Uint64
-    // // console.log(idUint64);
-    // // let test_color = new Uint64(15939583);
-    // // test_color.high = 15939583
-    // // console.log(test_color)
-    // this.segmentationDisplayState.segmentStatedColors.set(idUint64, new_color);
-    // console.log(this.segmentationDisplayState.segmentStatedColors.toJSON());
-    
-    // console.log(this_segment_color);
-    
     
   }
 
@@ -1094,37 +1072,11 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
         segmentationDisplayState.segmentStatedColors.delete(idUint64);
       }
 
-      // let color_array = getBaseObjectColor(this.segmentationDisplayState, idUint64)
-      // let color_vec = <vec3>color_array.subarray(0, 3);
-      // const color = new Uint64(packColor(color_vec));
-      // this.displayState.segmentStatedColors.set(idUint64, color);
-      // // const idString = this.parentElement!.dataset.id!;
-      // // alert(idString);
       let new_hex_color = this.value.slice(1); // removes the "#" at the beginning
       let new_color = new Uint64(parseInt(new_hex_color,16))
       segmentationDisplayState.segmentStatedColors.set(idUint64,new_color);
-      console.log(segmentationDisplayState.segmentStatedColors.toJSON());
-      console.log("Color changed to:");
-      console.log(new_hex_color);
     }
-    // function testChangeHandler(this: HTMLInputElement) {
-    //   const idString = this.parentElement!.dataset.id!;
-    //   let idUint64 = Uint64.parseString(String(idString));
-    //   // let color_array = getBaseObjectColor(this.segmentationDisplayState, idUint64)
-    //   // let color_vec = <vec3>color_array.subarray(0, 3);
-    //   // const color = new Uint64(packColor(color_vec));
-    //   // this.displayState.segmentStatedColors.set(idUint64, color);
-    //   // // const idString = this.parentElement!.dataset.id!;
-    //   // // alert(idString);
-    //   let new_hex_color = this.value.slice(1); // removes the "#" at the beginning
-    //   let new_color = new Uint64(parseInt(new_hex_color,16))
-    //   segmentationDisplayState.segmentStatedColors.set(idUint64,new_color);
-    //   console.log(segmentationDisplayState.segmentStatedColors.toJSON());
-    //   console.log("Color changed to:");
-    //   console.log(new_hex_color);
-    //   // console.log(new_color);
-    //   return new_color
-    // }
+    
     const {segmentSelectionState} = segmentationDisplayState;
     return (index: number) => {
       const {sortedVisibleSegments, segmentLabelMap} = this;
@@ -1160,7 +1112,6 @@ class SegmentListSource extends RefCounted implements VirtualListSource {
       const idElement = children[2];
       const idColorElement = children[3];
       idColorElement.addEventListener('input', testInputHandler);
-      // idColorElement.addEventListener('change', testChangeHandler);
       const nameElement = children[5];
       container.dataset.id = idString;
       idElement.textContent = idString;
@@ -1305,8 +1256,6 @@ class SegmentDisplayTab extends Tab {
                   parent.appendChild(selectionStatusContainer);
                   let prevNumSelected = -1;
                   const updateStatus = () => {
-                    // console.log("Now here");
-                    // console.log(layer.displayState.visibleSegments.toJSON());
                     const numSelected = layer.displayState.visibleSegments.size;
                     if (prevNumSelected !== numSelected) {
                       prevNumSelected = numSelected;
