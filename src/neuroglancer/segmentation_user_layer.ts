@@ -32,7 +32,6 @@ import {SharedDisjointUint64Sets} from 'neuroglancer/shared_disjoint_sets';
 import {PerspectiveViewSkeletonLayer, SkeletonLayer, SkeletonRenderingOptions, SliceViewPanelSkeletonLayer, ViewSpecificSkeletonRenderingOptions} from 'neuroglancer/skeleton/frontend';
 import {DataType, VolumeType} from 'neuroglancer/sliceview/volume/base';
 import {MultiscaleVolumeChunkSource} from 'neuroglancer/sliceview/volume/frontend';
-import {PrecomputedMultiscaleVolumeChunkSource} from 'neuroglancer/datasource/precomputed/frontend';
 import {SegmentationRenderLayer} from 'neuroglancer/sliceview/volume/segmentation_renderlayer';
 import {trackableAlphaValue} from 'neuroglancer/trackable_alpha';
 import {TrackableBoolean, TrackableBooleanCheckbox} from 'neuroglancer/trackable_boolean';
@@ -65,11 +64,6 @@ import {ShaderCodeWidget} from 'neuroglancer/widget/shader_code_widget';
 import {ShaderControls} from 'neuroglancer/widget/shader_controls';
 import {Tab} from 'neuroglancer/widget/tab_view';
 import {VirtualList, VirtualListSource} from 'neuroglancer/widget/virtual_list';
-import {PickState} from 'neuroglancer/layer';
-import {AraAtlas} from 'neuroglancer/ui/ara_atlas';
-import {PmaAtlas} from 'neuroglancer/ui/pma_atlas';
-// import {ColorWidget} from 'neuroglancer/widget/color';
-
 
 const SELECTED_ALPHA_JSON_KEY = 'selectedAlpha';
 const NOT_SELECTED_ALPHA_JSON_KEY = 'notSelectedAlpha';
@@ -132,11 +126,6 @@ export class SegmentationUserLayer extends Base {
     this.manager.root.selectedLayer.layer = this.managedLayer;
   };
 
-  /**
-  * Atlas to use for id lookup.
-  */
-  atlas: AraAtlas|null|undefined = null;
-  atlasType: string|undefined
   displayState = {
     segmentColorHash: SegmentColorHash.getDefault(),
     segmentStatedColors: Uint64Map.makeWithCounterpart(this.manager.worker),
@@ -166,8 +155,6 @@ export class SegmentationUserLayer extends Base {
   constructor(managedLayer: Borrowed<ManagedUserLayer>, specification: any) {
     super(managedLayer, specification);
 
-    // this.atlas = new AraAtlas();
-
     this.displayState.visibleSegments.changed.add(this.specificationChanged.dispatch);
     this.displayState.segmentEquivalences.changed.add(this.specificationChanged.dispatch);
     this.displayState.segmentSelectionState.bindTo(this.manager.layerSelectedValues, this);
@@ -191,24 +178,7 @@ export class SegmentationUserLayer extends Base {
     this.tabs.default = 'rendering';
   }
 
-  // Update the ontfield div text with atlas label of whatever segment has cursor focus
-  ontfield: HTMLElement | null = document.getElementById('onttext');
-  oldvalue: any|null|undefined;
-  getValueAt(position: Float32Array, pickState: PickState) {
-   if (this.atlas !== null) {
-     let newvalue = super.getValueAt(position, pickState);
-     if (newvalue !== null && newvalue !== undefined && (+newvalue !== +this.oldvalue)) {
-       if (! (typeof this.atlas === 'undefined' || this.atlas === null) && (this.ontfield != null)) {
-                 this.ontfield.innerHTML = '' + this.atlas.getNameForId(+newvalue.toString());
-       } 
-     }
-     this.oldvalue = newvalue;
-     return newvalue;
-    } else {
-      let newvalue = super.getValueAt(position, pickState);
-      return newvalue;
-    }
-  }
+ 
   get volumeOptions() {
     return {volumeType: VolumeType.SEGMENTATION};
   }
@@ -237,16 +207,7 @@ export class SegmentationUserLayer extends Base {
       const {volume, mesh, segmentPropertyMap} = loadedSubsource.subsourceEntry.subsource;
 
       if (volume instanceof MultiscaleVolumeChunkSource) {
-        if (volume instanceof PrecomputedMultiscaleVolumeChunkSource) {
-          if (volume.atlasType) {
-          if (volume.atlasType == 'Allen') {
-            this.atlas =  new AraAtlas();
-            }
-          else if (volume.atlasType == 'Princeton') {
-            this.atlas = new PmaAtlas();
-            } 
-          }
-        }
+        
         switch (volume.dataType) {
           case DataType.FLOAT32:
             loadedSubsource.deactivate('Data type not compatible with segmentation layer');

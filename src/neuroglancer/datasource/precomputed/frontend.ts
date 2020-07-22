@@ -132,7 +132,6 @@ interface MultiscaleVolumeInfo {
   segmentPropertyMap: string|undefined;
   scales: ScaleInfo[];
   modelSpace: CoordinateSpace;
-  atlasType: string|undefined /* for referencing static atlas */
 }
 
 function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
@@ -145,7 +144,6 @@ function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
   const segmentPropertyMap = verifyObjectProperty(obj, 'segment_properties', verifyOptionalString);
   const scaleInfos =
       verifyObjectProperty(obj, 'scales', x => parseArray(x, y => new ScaleInfo(y, numChannels)));
-  const atlasType = verifyObjectProperty(obj, 'atlas_type', verifyOptionalString);    
   if (scaleInfos.length === 0) throw new Error('Expected at least one scale');
   const baseScale = scaleInfos[0];
   const rank = (numChannels === 1) ? 3 : 4;
@@ -181,12 +179,11 @@ function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
     skeletons,
     segmentPropertyMap,
     scales: scaleInfos,
-    modelSpace,
-    atlasType
+    modelSpace
   };
 }
 
-export class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource {
+class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource {
   get dataType() {
     return this.info.dataType;
   }
@@ -197,10 +194,6 @@ export class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChun
 
   get rank() {
     return this.info.modelSpace.rank;
-  }
-
-  get atlasType() {
-    return this.info.atlasType;
   }
 
   constructor(chunkManager: ChunkManager, public url: string, public info: MultiscaleVolumeInfo) {
