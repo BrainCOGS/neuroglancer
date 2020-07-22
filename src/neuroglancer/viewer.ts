@@ -620,7 +620,8 @@ export class Viewer extends RefCounted implements ViewerState {
    * Called once by the constructor to register the action listeners.
    */
   private registerActionListeners() {
-    for (const action of ['recolor', 'clear-segments', ]) {
+    for (const action of ['recolor', 'clear-segments','increase-contrast',
+      'decrease-contrast','invert-colormap']) {
       this.bindAction(action, () => {
         this.layerManager.invokeAction(action);
       });

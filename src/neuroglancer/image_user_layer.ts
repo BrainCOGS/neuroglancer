@@ -24,8 +24,9 @@ import {getChannelSpace} from 'neuroglancer/render_coordinate_transform';
 import {RenderScaleHistogram, trackableRenderScaleTarget} from 'neuroglancer/render_scale_statistics';
 import {DataType, VolumeType} from 'neuroglancer/sliceview/volume/base';
 import {MultiscaleVolumeChunkSource} from 'neuroglancer/sliceview/volume/frontend';
-import {getTrackableFragmentMain, ImageRenderLayer} from 'neuroglancer/sliceview/volume/image_renderlayer';
+import {DEFAULT_IMAGE_CONTRAST,getTrackableFragmentMain, ImageRenderLayer} from 'neuroglancer/sliceview/volume/image_renderlayer';
 import {trackableAlphaValue} from 'neuroglancer/trackable_alpha';
+import {trackableFiniteFloat} from 'neuroglancer/trackable_finite_float';
 import {trackableBlendModeValue} from 'neuroglancer/trackable_blend';
 import {TrackableBoolean, TrackableBooleanCheckbox} from 'neuroglancer/trackable_boolean';
 import {makeCachedLazyDerivedWatchableValue, registerNested, WatchableValueInterface} from 'neuroglancer/trackable_value';
@@ -63,6 +64,8 @@ export interface ImageLayerSelectionState extends UserLayerSelectionState {
 
 const Base = UserLayerWithAnnotationsMixin(UserLayer);
 export class ImageUserLayer extends Base {
+  colorContrast = trackableFiniteFloat(DEFAULT_IMAGE_CONTRAST)
+  colorInverted = new TrackableBoolean(false)
   opacity = trackableAlphaValue(0.5);
   blendMode = trackableBlendModeValue();
   fragmentMain = getTrackableFragmentMain();
@@ -187,6 +190,62 @@ export class ImageUserLayer extends Base {
     x[CHANNEL_DIMENSIONS_JSON_KEY] = this.channelCoordinateSpace.toJSON();
     x[VOLUME_RENDERING_JSON_KEY] = this.volumeRendering.toJSON();
     return x;
+  }
+
+  handleAction(action: string) {
+
+    switch (action) {
+
+      case 'invert-colormap': {
+        if (this.colorInverted.value) {
+          console.log("Colormap is already inverted");
+          console.log("...reverting");
+          // keep current contrast level and revert to toNormalized()
+          const fragmentStr = "void main() {emitGrayscale(toNormalized(getDataValue())*"+this.colorContrast.value.toFixed(1)+");}";  
+          this.fragmentMain.value = fragmentStr;
+          // now set the colorInverted property to false to reflect updated state
+          this.colorInverted.value = false;
+        }
+        else {
+          console.log("Colormap is not inverted");
+          console.log("...inverting");
+          // keep current contrast level, but invert via 1.0-toNormalized() 
+          const fragmentStr = "void main() {emitGrayscale(1.0-toNormalized(getDataValue())*"+this.colorContrast.value.toFixed(1)+");}";  
+          this.fragmentMain.value = fragmentStr;
+          // now set the colorInverted property to true to reflect updated state 
+          this.colorInverted.value = true;
+        }
+        break;
+      }
+
+      case 'increase-contrast': {
+        this.colorContrast.value += 5.0;
+        // Figure out if inverted or not
+        var fragmentStr = "void main() {emitGrayscale"
+        if (this.colorInverted.value) {
+          fragmentStr += "(1.0-toNormalized(getDataValue())*"+this.colorContrast.value.toFixed(1)+");}";
+        }
+        else {
+          fragmentStr += "(toNormalized(getDataValue())*"+this.colorContrast.value.toFixed(1)+");}";
+        }
+        this.fragmentMain.value = fragmentStr;
+        break;
+      }
+
+      case 'decrease-contrast': {
+        this.colorContrast.value -= 5.0;
+        var fragmentStr = "void main() {emitGrayscale"
+        // Figure out if inverted or not
+        if (this.colorInverted.value) {
+          fragmentStr += "(1.0-toNormalized(getDataValue())*"+this.colorContrast.value.toFixed(1)+");}";
+        }
+        else {
+          fragmentStr += "(toNormalized(getDataValue())*"+this.colorContrast.value.toFixed(1)+");}";
+        }
+        this.fragmentMain.value = fragmentStr;
+        break;
+      }
+    }
   }
 
   displayImageSelectionState(state: this['selectionState'], parent: HTMLElement): boolean {

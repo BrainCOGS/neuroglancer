@@ -25,8 +25,10 @@ import {makeTrackableFragmentMain, shaderCodeWithLineDirective, WatchableShaderE
 import {ShaderBuilder, ShaderProgram} from 'neuroglancer/webgl/shader';
 import {addControlsToBuilder, parseShaderUiControls, setControlsInShader, ShaderControlsParseResult, ShaderControlState} from 'neuroglancer/webgl/shader_ui_controls';
 
+export const DEFAULT_IMAGE_CONTRAST = 15.0;
+
 const DEFAULT_FRAGMENT_MAIN = `void main() {
-  emitGrayscale(toNormalized(getDataValue()));
+  emitGrayscale(toNormalized(getDataValue())*${DEFAULT_IMAGE_CONTRAST.toFixed(1)});
 }
 `;
 
