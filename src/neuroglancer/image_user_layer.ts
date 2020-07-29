@@ -49,6 +49,8 @@ import {RenderScaleWidget} from 'neuroglancer/widget/render_scale_widget';
 import {ShaderCodeWidget} from 'neuroglancer/widget/shader_code_widget';
 import {ShaderControls} from 'neuroglancer/widget/shader_controls';
 import {Tab} from 'neuroglancer/widget/tab_view';
+import {PrecomputedMultiscaleVolumeChunkSource} from 'neuroglancer/datasource/precomputed/frontend';
+import {StatusMessage} from 'neuroglancer/status';
 
 const OPACITY_JSON_KEY = 'opacity';
 const BLEND_JSON_KEY = 'blend';
@@ -127,6 +129,18 @@ export class ImageUserLayer extends Base {
       const {subsourceEntry} = loadedSubsource;
       const {subsource} = subsourceEntry;
       const {volume} = subsource;
+      if (volume instanceof PrecomputedMultiscaleVolumeChunkSource) {
+        if (volume.atlasType) {
+          if (volume.atlasType == 'Allen') {
+            let paxinos_position_element = document.getElementById('neuroglancer-paxinos-position-widget');
+            if (paxinos_position_element) {
+              StatusMessage.showTemporaryMessage('Allen atlas accepted. Showing Paxinos coordinates.',
+                10000);
+              paxinos_position_element.style.display = 'block';
+            }
+          }
+        }
+      }
       if (!(volume instanceof MultiscaleVolumeChunkSource)) {
         loadedSubsource.deactivate('Not compatible with image layer');
         continue;

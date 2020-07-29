@@ -930,7 +930,7 @@ export class PaxinosPositionWidget extends RefCounted {
     if (mouseState.active && coordinateSpace !== undefined) {
       const p = mouseState.position;
       let paxinosVec = convertAllenToPaxinos(p[0],p[1],p[2]);
-      text += `AP ${paxinosVec[0].toFixed(2)},  ML ${paxinosVec[1].toFixed(2)},  DV ${paxinosVec[2].toFixed(2)}`;      
+      text += `AP ${paxinosVec[0].toFixed(2)},  ML ${paxinosVec[1].toFixed(2)},  DV ${paxinosVec[2].toFixed(2)} (mm)`;      
     }
     this.element.textContent = text;
   }
