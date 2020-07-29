@@ -15,7 +15,7 @@
  */
 
 import './position_widget.css';
-
+import './paxinos_widget.css';
 import {computeCombinedLowerUpperBound, CoordinateSpace, CoordinateSpaceCombiner, DimensionId, emptyInvalidCoordinateSpace, insertDimensionAt, makeCoordinateSpace} from 'neuroglancer/coordinate_transform';
 import {MouseSelectionState} from 'neuroglancer/layer';
 import {Position} from 'neuroglancer/navigation_state';
@@ -910,3 +910,42 @@ export class MousePositionWidget extends RefCounted {
     super.disposed();
   }
 }
+
+export class PaxinosPositionWidget extends RefCounted {
+  tempPosition = vec3.create();
+  constructor(
+      public element: HTMLElement, public mouseState: MouseSelectionState,
+      public coordinateSpace: WatchableValueInterface<CoordinateSpace|undefined>) {
+    super();
+    element.className = 'neuroglancer-paxinos-position-widget';
+    element.id = 'neuroglancer-paxinos-position-widget';
+    const updateViewFunction =
+        this.registerCancellable(animationFrameDebounce(() => this.updateView()));
+    this.registerDisposer(mouseState.changed.add(updateViewFunction));
+    this.registerDisposer(coordinateSpace.changed.add(updateViewFunction));
+  }
+  updateView() {
+    let text = '';
+    const {mouseState, coordinateSpace: {value: coordinateSpace}} = this;
+    if (mouseState.active && coordinateSpace !== undefined) {
+      const p = mouseState.position;
+      let paxinosVec = convertAllenToPaxinos(p[0],p[1],p[2]);
+      text += `AP ${paxinosVec[0].toFixed(2)},  ML ${paxinosVec[1].toFixed(2)},  DV ${paxinosVec[2].toFixed(2)}`;      
+    }
+    this.element.textContent = text;
+  }
+  disposed() {
+    removeFromParent(this.element);
+    super.disposed();
+  }
+
+}
+
+function convertAllenToPaxinos(x:number,y:number,z:number) {
+    // Convert x,y,z Allen voxel coordinate to Paxinos AP, ML, DV coordinate 
+    let AP = -((y-214)*25-20)/1000
+    let ML = (25/1000)*(456/2.-z)
+    let DV = (25/1000)*(x-27)
+    const paxinosVec = vec3.fromValues(AP, ML, DV);
+    return paxinosVec
+  }

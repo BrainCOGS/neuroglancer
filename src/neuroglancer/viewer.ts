@@ -57,7 +57,7 @@ import {GL} from 'neuroglancer/webgl/context';
 import {AnnotationToolStatusWidget} from 'neuroglancer/widget/annotation_tool_status';
 import {makeIcon} from 'neuroglancer/widget/icon';
 import {NumberInputWidget} from 'neuroglancer/widget/number_input_widget';
-import {MousePositionWidget, PositionWidget} from 'neuroglancer/widget/position_widget';
+import {MousePositionWidget, PositionWidget,PaxinosPositionWidget} from 'neuroglancer/widget/position_widget';
 import {TrackableScaleBarOptions} from 'neuroglancer/widget/scale_bar';
 import {RPC} from 'neuroglancer/worker_rpc';
 
@@ -502,6 +502,15 @@ export class Viewer extends RefCounted implements ViewerState {
         this.uiControlVisibility.showLocation, mousePositionWidget.element));
     topRow.appendChild(mousePositionWidget.element);
 
+    const paxinosPositionWidget = this.registerDisposer(new PaxinosPositionWidget(
+      document.createElement('div'), this.mouseState, this.navigationState.coordinateSpace));
+    paxinosPositionWidget.element.style.flex = '1';
+    paxinosPositionWidget.element.style.alignSelf = 'center';
+    paxinosPositionWidget.element.style.display = "none";
+    this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
+      this.uiControlVisibility.showLocation, paxinosPositionWidget.element));
+    topRow.appendChild(paxinosPositionWidget.element);
+    
     const annotationToolStatus =
         this.registerDisposer(new AnnotationToolStatusWidget(this.selectedLayer));
     topRow.appendChild(annotationToolStatus.element);

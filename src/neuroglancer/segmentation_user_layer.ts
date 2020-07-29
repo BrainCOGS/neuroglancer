@@ -64,6 +64,8 @@ import {ShaderCodeWidget} from 'neuroglancer/widget/shader_code_widget';
 import {ShaderControls} from 'neuroglancer/widget/shader_controls';
 import {Tab} from 'neuroglancer/widget/tab_view';
 import {VirtualList, VirtualListSource} from 'neuroglancer/widget/virtual_list';
+import {PrecomputedMultiscaleVolumeChunkSource} from 'neuroglancer/datasource/precomputed/frontend';
+import {StatusMessage} from 'neuroglancer/status';
 
 const SELECTED_ALPHA_JSON_KEY = 'selectedAlpha';
 const NOT_SELECTED_ALPHA_JSON_KEY = 'notSelectedAlpha';
@@ -125,7 +127,7 @@ export class SegmentationUserLayer extends Base {
     this.tabs.value = 'segments';
     this.manager.root.selectedLayer.layer = this.managedLayer;
   };
-
+  atlasType: string|undefined
   displayState = {
     segmentColorHash: SegmentColorHash.getDefault(),
     segmentStatedColors: Uint64Map.makeWithCounterpart(this.manager.worker),
@@ -207,7 +209,18 @@ export class SegmentationUserLayer extends Base {
       const {volume, mesh, segmentPropertyMap} = loadedSubsource.subsourceEntry.subsource;
 
       if (volume instanceof MultiscaleVolumeChunkSource) {
-        
+        if (volume instanceof PrecomputedMultiscaleVolumeChunkSource) {
+          if (volume.atlasType) {
+            if (volume.atlasType == 'Allen') {
+              let paxinos_position_element = document.getElementById('neuroglancer-paxinos-position-widget');
+              if (paxinos_position_element) {
+                StatusMessage.showTemporaryMessage('Allen atlas accepted. Showing Paxinos coordinates.',
+                  10000);
+                paxinos_position_element.style.display = 'block';
+              }
+            }
+          }
+        }
         switch (volume.dataType) {
           case DataType.FLOAT32:
             loadedSubsource.deactivate('Data type not compatible with segmentation layer');
