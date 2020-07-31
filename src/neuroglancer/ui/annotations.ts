@@ -61,6 +61,7 @@ import {makeFilterButton} from 'neuroglancer/widget/filter_button';
 import {makeIcon} from 'neuroglancer/widget/icon';
 import {makeMoveToButton} from 'neuroglancer/widget/move_to_button';
 import {Tab} from 'neuroglancer/widget/tab_view';
+// import { SegmentLabelMap } from '../segmentation_display_state/property_map';
 
 interface AnnotationIdAndPart {
   id: string, sourceIndex: number;
@@ -595,32 +596,20 @@ export class AnnotationLayerView extends Tab {
   }
 
   private exportToCSV() {
+    // displayState member (type AnnotationDisplayState) -> relationshipStates -> get(relationshipName) -> 
+    // segmentationState -> value -> segmentLabelMap
+
+    // console.log(AnnotationDisplayState);
+    
     const filename = 'annotations.csv';
     let csvString = 'Coordinates,Description,Segment IDs,Segment Names,Type\n';
-    // const pointToCoordinateText = (point: vec3, transform: mat4) => {
-    //   const spatialPoint = vec3.transformMat4(vec3.create(), point, transform);
-    //   return formatIntegerPoint(this..voxelFromSpatial(tempVec3, spatialPoint));
-    // };
+   
     const self = this;
-    // const annotationLayer = this.annotationStates.states.find(
-    //   x => x.sourceIndex === state.annotationSourceIndex &&
-    //       (state.annotationSubsource === undefined ||
-    //        x.subsourceId === state.annotationSubsource));
-    // let annotationLayer = this.annotationStates.states[0];
-    // const {relationships} = annotationLayer.source;
-    // for (let i = 0, count = relationships.length; i < count; ++i) {
-    //   // const related = relatedSegments === undefined ? [] : relatedSegments[i];
-    //   // if (related.length === 0 && sourceReadonly) continue;
-    //   // const relationshipIndex = i;
-    //   const relationship = relationships[i];
-    //   console.log(relationship)
-    //   let displayState = annotationLayer.displayState.relationshipStates.get(relationship).segmentationState
-    //   displayState.
-    // }
-    // console.log(annotationLayer.displayState.relationshipStates.get(relationship))
-    // console.log(annotationLayer.displayState.)
-    // const segmentLabelMap = segmentationDisplayState.segmentLabelMap.value;
-
+  
+    /// Get the segment label mapping
+    let annotationLayer = this.annotationStates.states[0];
+    let segmentationState = annotationLayer.displayState.relationshipStates.get("segments").segmentationState
+    let mapping = segmentationState.value?.segmentLabelMap.value;
     for (const [state, ] of self.attachedAnnotationStates) {
       // if (!state.source.readonly) isMutable = true;
       if (state.chunkTransform.value.error !== undefined) continue;
@@ -628,22 +617,26 @@ export class AnnotationLayerView extends Tab {
         let annotationString = '';
         let coordinatesString = '"';
         let annotationType = ''
+        // Coordinates
         switch (annotation.type) {
           case AnnotationType.POINT:
-            console.log(annotation.point);
+            // console.log(annotation.point);
             const positionText = formatIntegerPoint(annotation.point);
             coordinatesString += positionText;
             annotationType +=  'Point';
-            console.log("point");
+            // console.log("point");
             break;
           }
           annotationString += coordinatesString + '",';
+          // Description
           if (annotation.description) {
             annotationString+=annotation.description;
           }
           annotationString += ',';
+          // Segment IDs and Names, if available
           if (annotation.relatedSegments) {
             let segmentString = '"';
+            let segmentNameString = '"';
             let firstSegment = true;
             annotation.relatedSegments.forEach(segmentID => {
               if (firstSegment) {
@@ -652,15 +645,27 @@ export class AnnotationLayerView extends Tab {
                 segmentString += ',';
               }
               segmentString += segmentID.toString();
+              if (mapping) {
+                let segmentName = mapping.get(segmentID.toString());
+                if (segmentName) {
+                  segmentNameString += segmentName;
+                }
+                else {
+                  segmentNameString += '';
+                }
+              }
+              else {
+                segmentNameString = '';
+              }
             });
-            annotationString += segmentString + '",';
+            annotationString += segmentString + '",' + segmentNameString + '",';
           }
-          
+                        
           annotationString += annotationType;
           csvString += annotationString + '\n';
         }
     }
-    
+    console.log(csvString)
     const blob = new Blob([csvString],  { type: 'text/csv;charset=utf-8;'});
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
