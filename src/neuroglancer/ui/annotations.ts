@@ -505,6 +505,12 @@ export class AnnotationLayerView extends Tab {
     const toolbox = document.createElement('div');
     toolbox.className = 'neuroglancer-annotation-toolbox';
 
+    const exportToCSVButton = document.createElement('button');
+    exportToCSVButton.id = 'exportToCSVButton';
+    exportToCSVButton.textContent = 'Export to CSV';
+    exportToCSVButton.addEventListener('click', () => {
+        this.exportToCSV();
+      });
     layer.initializeAnnotationLayerViewTab(this);
     const colorPicker = this.registerDisposer(new ColorWidget(this.displayState.color));
     colorPicker.element.title = 'Change annotation display color';
@@ -552,6 +558,7 @@ export class AnnotationLayerView extends Tab {
     mutableControls.appendChild(ellipsoidButton);
     toolbox.appendChild(mutableControls);
     this.element.appendChild(toolbox);
+    this.element.appendChild(exportToCSVButton);
 
     this.element.appendChild(this.listContainer);
     this.listContainer.addEventListener('mouseleave', () => {
@@ -585,6 +592,83 @@ export class AnnotationLayerView extends Tab {
         element.classList.remove('neuroglancer-annotation-selected');
       }
     }
+  }
+
+  private exportToCSV() {
+    const filename = 'annotations.csv';
+    let csvString = 'Coordinates,Description,Segment IDs,Segment Names,Type\n';
+    // const pointToCoordinateText = (point: vec3, transform: mat4) => {
+    //   const spatialPoint = vec3.transformMat4(vec3.create(), point, transform);
+    //   return formatIntegerPoint(this..voxelFromSpatial(tempVec3, spatialPoint));
+    // };
+    const self = this;
+    // const annotationLayer = this.annotationStates.states.find(
+    //   x => x.sourceIndex === state.annotationSourceIndex &&
+    //       (state.annotationSubsource === undefined ||
+    //        x.subsourceId === state.annotationSubsource));
+    // let annotationLayer = this.annotationStates.states[0];
+    // const {relationships} = annotationLayer.source;
+    // for (let i = 0, count = relationships.length; i < count; ++i) {
+    //   // const related = relatedSegments === undefined ? [] : relatedSegments[i];
+    //   // if (related.length === 0 && sourceReadonly) continue;
+    //   // const relationshipIndex = i;
+    //   const relationship = relationships[i];
+    //   console.log(relationship)
+    //   let displayState = annotationLayer.displayState.relationshipStates.get(relationship).segmentationState
+    //   displayState.
+    // }
+    // console.log(annotationLayer.displayState.relationshipStates.get(relationship))
+    // console.log(annotationLayer.displayState.)
+    // const segmentLabelMap = segmentationDisplayState.segmentLabelMap.value;
+
+    for (const [state, ] of self.attachedAnnotationStates) {
+      // if (!state.source.readonly) isMutable = true;
+      if (state.chunkTransform.value.error !== undefined) continue;
+      for (const annotation of state.source) {
+        let annotationString = '';
+        let coordinatesString = '"';
+        let annotationType = ''
+        switch (annotation.type) {
+          case AnnotationType.POINT:
+            console.log(annotation.point);
+            const positionText = formatIntegerPoint(annotation.point);
+            coordinatesString += positionText;
+            annotationType +=  'Point';
+            console.log("point");
+            break;
+          }
+          annotationString += coordinatesString + '",';
+          if (annotation.description) {
+            annotationString+=annotation.description;
+          }
+          annotationString += ',';
+          if (annotation.relatedSegments) {
+            let segmentString = '"';
+            let firstSegment = true;
+            annotation.relatedSegments.forEach(segmentID => {
+              if (firstSegment) {
+                firstSegment = false;
+              } else {
+                segmentString += ',';
+              }
+              segmentString += segmentID.toString();
+            });
+            annotationString += segmentString + '",';
+          }
+          
+          annotationString += annotationType;
+          csvString += annotationString + '\n';
+        }
+    }
+    
+    const blob = new Blob([csvString],  { type: 'text/csv;charset=utf-8;'});
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   private clearHoverClass() {
