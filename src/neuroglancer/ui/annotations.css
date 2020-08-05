@@ -284,3 +284,9 @@ input.neuroglancer-segment-list-entry-id {
   font-family: sans-serif;
   font-size: small;
 }
+
+
+#exportToCSVButton {
+  width: 110px;
+}
+

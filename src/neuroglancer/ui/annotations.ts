@@ -61,6 +61,9 @@ import {makeFilterButton} from 'neuroglancer/widget/filter_button';
 import {makeIcon} from 'neuroglancer/widget/icon';
 import {makeMoveToButton} from 'neuroglancer/widget/move_to_button';
 import {Tab} from 'neuroglancer/widget/tab_view';
+// import { SegmentLabelMap } from '../segmentation_display_state/property_map';
+
+const Papa = require('papaparse');
 
 interface AnnotationIdAndPart {
   id: string, sourceIndex: number;
@@ -505,6 +508,12 @@ export class AnnotationLayerView extends Tab {
     const toolbox = document.createElement('div');
     toolbox.className = 'neuroglancer-annotation-toolbox';
 
+    const exportToCSVButton = document.createElement('button');
+    exportToCSVButton.id = 'exportToCSVButton';
+    exportToCSVButton.textContent = 'Export to CSV';
+    exportToCSVButton.addEventListener('click', () => {
+        this.exportToCSV();
+      });
     layer.initializeAnnotationLayerViewTab(this);
     const colorPicker = this.registerDisposer(new ColorWidget(this.displayState.color));
     colorPicker.element.title = 'Change annotation display color';
@@ -552,6 +561,7 @@ export class AnnotationLayerView extends Tab {
     mutableControls.appendChild(ellipsoidButton);
     toolbox.appendChild(mutableControls);
     this.element.appendChild(toolbox);
+    this.element.appendChild(exportToCSVButton);
 
     this.element.appendChild(this.listContainer);
     this.listContainer.addEventListener('mouseleave', () => {
@@ -585,6 +595,110 @@ export class AnnotationLayerView extends Tab {
         element.classList.remove('neuroglancer-annotation-selected');
       }
     }
+  }
+
+  private exportToCSV() {
+    const filename = 'annotations.csv';
+    const columnHeaders = [
+      'Coordinate 1','Coordinate 2','Ellipsoid Dimensions','Description','Segment IDs','Segment Names','Type']
+    const csvData: string[][] = [];
+    const self = this;
+  
+    /// Try to get the segment label mapping
+    let annotationLayer = this.annotationStates.states[0];
+    let segmentationState = annotationLayer.displayState.relationshipStates.get("segments").segmentationState
+    let mapping = segmentationState.value?.segmentLabelMap.value;
+
+    // Loop over annotations
+    for (const [state, ] of self.attachedAnnotationStates) {
+      if (state.chunkTransform.value.error !== undefined) continue;
+      for (const annotation of state.source) {
+        const annotationRow = [];
+        let coordinate1String = '';
+        let coordinate2String = '';
+        let ellipsoidDimensions = '';
+        let stringType = '';
+        // Coordinates and annotation type
+        switch (annotation.type) {
+          case AnnotationType.POINT:
+            stringType = 'Point';
+            coordinate1String = formatIntegerPoint(annotation.point);
+            break;
+          case AnnotationType.ELLIPSOID:
+              stringType = 'Ellipsoid';
+              coordinate1String =
+                  formatIntegerPoint(annotation.center);
+              ellipsoidDimensions = formatIntegerPoint(annotation.radii);
+              break;
+            case AnnotationType.AXIS_ALIGNED_BOUNDING_BOX:
+            case AnnotationType.LINE:
+              stringType = annotation.type === AnnotationType.LINE ? 'Line' : 'Bounding Box';
+              coordinate1String = formatIntegerPoint(annotation.pointA);
+              coordinate2String = formatIntegerPoint(annotation.pointB);
+              break;
+        }
+        annotationRow.push(coordinate1String);
+        annotationRow.push(coordinate2String);
+        annotationRow.push(ellipsoidDimensions);
+        // Description
+        if (annotation.description) {
+          annotationRow.push(annotation.description);
+        }
+        else {
+          annotationRow.push('');
+        }
+        // Segment IDs and Names, if available
+        if (annotation.relatedSegments) {
+          const annotationSegments: string[][] = [[]];
+          const annotationSegmentNames: string[][] = [[]];
+          let segmentList = annotation.relatedSegments[0]; 
+          segmentList.forEach(segmentID => {
+            annotationSegments[0].push(segmentID.toString());
+            
+            if (mapping) {
+              let segmentName = mapping.get(segmentID.toString());
+              if (segmentName) {
+                annotationSegmentNames[0].push(segmentName);
+              }
+              else {
+                annotationSegmentNames[0].push('');
+              }
+            }
+            else {
+              annotationSegmentNames[0].push('');
+            }
+          });
+          if (annotationSegments[0].length > 0) {
+            annotationRow.push(Papa.unparse(annotationSegments,{delimiter: "; "}));
+            annotationRow.push(Papa.unparse(annotationSegmentNames,{delimiter: "; "}));
+          }
+          else {
+            annotationRow.push('');
+            annotationRow.push('');
+          }
+        }
+        else {
+          annotationRow.push('');
+          annotationRow.push('');
+        }
+        // push the type of annotation and then push the whole row
+        annotationRow.push(stringType);
+        csvData.push(annotationRow);
+      }
+    }
+    // remove duplicates from csvData - often happens with points
+    var uniqueData = csvData.map(ar=>JSON.stringify(ar))
+      .filter((itm, idx, arr) => arr.indexOf(itm) === idx)
+      .map(str=>JSON.parse(str));
+    const papaString = Papa.unparse({'fields':columnHeaders,'data': uniqueData})
+    const blob = new Blob([papaString],  { type: 'text/csv;charset=utf-8;'});
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   private clearHoverClass() {
