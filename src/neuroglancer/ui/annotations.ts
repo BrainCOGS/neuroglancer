@@ -606,7 +606,7 @@ export class AnnotationLayerView extends Tab {
     const filename = 'annotations.csv';
     // let csvString = 'Coordinate 1,Coordinate 2,Description,Segment IDs,Segment Names,Type\n';
     const columnHeaders = [
-      'Coordinate 1','Coordinate 2','Description','Segment IDs','Segment Names','Type']
+      'Coordinate 1','Coordinate 2','Ellipsoid Dimensions','Description','Segment IDs','Segment Names','Type']
     const csvData: string[][] = [];
     const self = this;
   
@@ -619,29 +619,39 @@ export class AnnotationLayerView extends Tab {
       if (state.chunkTransform.value.error !== undefined) continue;
       for (const annotation of state.source) {
         const annotationRow = [];
-
         // let annotationString = '';
         // let coordinatesString = '"';
         let coordinate1String = '';
         let coordinate2String = '';
+        let ellipsoidDimensions = '';
         let stringType = '';
         // let annotationType = ''
         // Coordinates
         switch (annotation.type) {
           case AnnotationType.POINT:
-            // console.log(annotation.point);
             stringType = 'Point';
-            const positionText = formatIntegerPoint(annotation.point);
-            coordinate1String += positionText;
+            coordinate1String = formatIntegerPoint(annotation.point);
+            
             // annotationType +=  'Point';
             // console.log("point");
             break;
-            case AnnotationType.LINE:
-              console.log("We have a line");
+          case AnnotationType.ELLIPSOID:
+              stringType = 'Ellipsoid';
+              coordinate1String =
+                  formatIntegerPoint(annotation.center);
               console.log(annotation);
+              ellipsoidDimensions = formatIntegerPoint(annotation.radii);
+              break;
+            case AnnotationType.AXIS_ALIGNED_BOUNDING_BOX:
+            case AnnotationType.LINE:
+              stringType = annotation.type === AnnotationType.LINE ? 'Line' : 'Bounding Box';
+              coordinate1String = formatIntegerPoint(annotation.pointA);
+              coordinate2String = formatIntegerPoint(annotation.pointB);
+              break;
           }
           annotationRow.push(coordinate1String);
           annotationRow.push(coordinate2String);
+          annotationRow.push(ellipsoidDimensions);
           // Description
           if (annotation.description) {
             annotationRow.push(annotation.description);
