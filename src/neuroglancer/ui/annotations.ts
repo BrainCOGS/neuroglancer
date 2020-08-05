@@ -619,8 +619,7 @@ export class AnnotationLayerView extends Tab {
       if (state.chunkTransform.value.error !== undefined) continue;
       for (const annotation of state.source) {
         const annotationRow = [];
-        // let annotationString = '';
-        // let coordinatesString = '"';
+      
         let coordinate1String = '';
         let coordinate2String = '';
         let ellipsoidDimensions = '';
@@ -630,13 +629,11 @@ export class AnnotationLayerView extends Tab {
           case AnnotationType.POINT:
             stringType = 'Point';
             coordinate1String = formatIntegerPoint(annotation.point);
-          
             break;
           case AnnotationType.ELLIPSOID:
               stringType = 'Ellipsoid';
               coordinate1String =
                   formatIntegerPoint(annotation.center);
-              console.log(annotation);
               ellipsoidDimensions = formatIntegerPoint(annotation.radii);
               break;
             case AnnotationType.AXIS_ALIGNED_BOUNDING_BOX:
@@ -657,7 +654,6 @@ export class AnnotationLayerView extends Tab {
             annotationRow.push('');
           }
           // Segment IDs and Names, if available
-          console.log(annotation.relatedSegments);
           if (annotation.relatedSegments) {
             const annotationSegments: string[][] = [[]];
             const annotationSegmentNames: string[][] = [[]];
@@ -679,8 +675,8 @@ export class AnnotationLayerView extends Tab {
               }
             });
             if (annotationSegments[0].length > 0) {
-              annotationRow.push(Papa.unparse(annotationSegments));
-              annotationRow.push(Papa.unparse(annotationSegmentNames));
+              annotationRow.push(Papa.unparse(annotationSegments,{delimiter: "; "}));
+              annotationRow.push(Papa.unparse(annotationSegmentNames,{delimiter: "; "}));
             }
             else {
               annotationRow.push('');
@@ -700,7 +696,6 @@ export class AnnotationLayerView extends Tab {
     }
     const papaString = Papa.unparse({'fields':columnHeaders,'data': csvData})
     console.log(papaString);
-    // console.log(csvString)
     const blob = new Blob([papaString],  { type: 'text/csv;charset=utf-8;'});
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
