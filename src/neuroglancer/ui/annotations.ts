@@ -598,33 +598,27 @@ export class AnnotationLayerView extends Tab {
   }
 
   private exportToCSV() {
-    // displayState member (type AnnotationDisplayState) -> relationshipStates -> get(relationshipName) -> 
-    // segmentationState -> value -> segmentLabelMap
-
-    // console.log(AnnotationDisplayState);
-    
     const filename = 'annotations.csv';
-    // let csvString = 'Coordinate 1,Coordinate 2,Description,Segment IDs,Segment Names,Type\n';
     const columnHeaders = [
       'Coordinate 1','Coordinate 2','Ellipsoid Dimensions','Description','Segment IDs','Segment Names','Type']
     const csvData: string[][] = [];
     const self = this;
   
-    /// Get the segment label mapping
+    /// Try to get the segment label mapping
     let annotationLayer = this.annotationStates.states[0];
     let segmentationState = annotationLayer.displayState.relationshipStates.get("segments").segmentationState
     let mapping = segmentationState.value?.segmentLabelMap.value;
+
+    // Loop over annotations
     for (const [state, ] of self.attachedAnnotationStates) {
-      // if (!state.source.readonly) isMutable = true;
       if (state.chunkTransform.value.error !== undefined) continue;
       for (const annotation of state.source) {
         const annotationRow = [];
-      
         let coordinate1String = '';
         let coordinate2String = '';
         let ellipsoidDimensions = '';
         let stringType = '';
-        // Coordinates
+        // Coordinates and annotation type
         switch (annotation.type) {
           case AnnotationType.POINT:
             stringType = 'Point';
@@ -642,60 +636,61 @@ export class AnnotationLayerView extends Tab {
               coordinate1String = formatIntegerPoint(annotation.pointA);
               coordinate2String = formatIntegerPoint(annotation.pointB);
               break;
-          }
-          annotationRow.push(coordinate1String);
-          annotationRow.push(coordinate2String);
-          annotationRow.push(ellipsoidDimensions);
-          // Description
-          if (annotation.description) {
-            annotationRow.push(annotation.description);
-          }
-          else {
-            annotationRow.push('');
-          }
-          // Segment IDs and Names, if available
-          if (annotation.relatedSegments) {
-            const annotationSegments: string[][] = [[]];
-            const annotationSegmentNames: string[][] = [[]];
-            let segmentList = annotation.relatedSegments[0]; 
-            segmentList.forEach(segmentID => {
-              annotationSegments[0].push(segmentID.toString());
-             
-              if (mapping) {
-                let segmentName = mapping.get(segmentID.toString());
-                if (segmentName) {
-                  annotationSegmentNames[0].push(segmentName);
-                }
-                else {
-                  annotationSegmentNames[0].push('');
-                }
+        }
+        annotationRow.push(coordinate1String);
+        annotationRow.push(coordinate2String);
+        annotationRow.push(ellipsoidDimensions);
+        // Description
+        if (annotation.description) {
+          annotationRow.push(annotation.description);
+        }
+        else {
+          annotationRow.push('');
+        }
+        // Segment IDs and Names, if available
+        if (annotation.relatedSegments) {
+          const annotationSegments: string[][] = [[]];
+          const annotationSegmentNames: string[][] = [[]];
+          let segmentList = annotation.relatedSegments[0]; 
+          segmentList.forEach(segmentID => {
+            annotationSegments[0].push(segmentID.toString());
+            
+            if (mapping) {
+              let segmentName = mapping.get(segmentID.toString());
+              if (segmentName) {
+                annotationSegmentNames[0].push(segmentName);
               }
               else {
                 annotationSegmentNames[0].push('');
               }
-            });
-            if (annotationSegments[0].length > 0) {
-              annotationRow.push(Papa.unparse(annotationSegments,{delimiter: "; "}));
-              annotationRow.push(Papa.unparse(annotationSegmentNames,{delimiter: "; "}));
             }
             else {
-              annotationRow.push('');
-              annotationRow.push('');
+              annotationSegmentNames[0].push('');
             }
-            // annotationString += segmentString + '",' + segmentNameString + '",';
+          });
+          if (annotationSegments[0].length > 0) {
+            annotationRow.push(Papa.unparse(annotationSegments,{delimiter: "; "}));
+            annotationRow.push(Papa.unparse(annotationSegmentNames,{delimiter: "; "}));
           }
           else {
             annotationRow.push('');
             annotationRow.push('');
           }
-          annotationRow.push(stringType);
-          // annotationString += annotationType;
-          // csvString += annotationString + '\n';
-          csvData.push(annotationRow);
         }
+        else {
+          annotationRow.push('');
+          annotationRow.push('');
+        }
+        // push the type of annotation and then push the whole row
+        annotationRow.push(stringType);
+        csvData.push(annotationRow);
+      }
     }
-    const papaString = Papa.unparse({'fields':columnHeaders,'data': csvData})
-    console.log(papaString);
+    // remove duplicates from csvData - often happens with points
+    var uniqueData = csvData.map(ar=>JSON.stringify(ar))
+      .filter((itm, idx, arr) => arr.indexOf(itm) === idx)
+      .map(str=>JSON.parse(str));
+    const papaString = Papa.unparse({'fields':columnHeaders,'data': uniqueData})
     const blob = new Blob([papaString],  { type: 'text/csv;charset=utf-8;'});
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
