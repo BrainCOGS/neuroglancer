@@ -214,9 +214,26 @@ export class SegmentationUserLayer extends Base {
             if (volume.atlasType == 'Allen') {
               let paxinos_position_element = document.getElementById('neuroglancer-paxinos-position-widget');
               if (paxinos_position_element) {
-                StatusMessage.showTemporaryMessage('Allen atlas accepted. Showing Paxinos coordinates.',
-                  10000);
                 paxinos_position_element.style.display = 'block';
+                // If the status message is already shown, then don't show it 
+                var show_message = 1 // default
+                let container = document.getElementById('statusContainer')
+                if (container) {
+                  let listItems = container.getElementsByTagName("li")
+                  
+                  for (var i = 0; i < listItems.length; ++i) {
+                    var item = listItems[i]
+                    if (item.textContent && item.textContent.includes('Allen atlas accepted')) {
+                      show_message = 0
+                    }
+
+                  }
+                }
+                if (show_message) {
+                  StatusMessage.showTemporaryMessage('Allen atlas accepted. Showing Paxinos coordinates.',
+                  10000);
+                }
+                
               }
             }
           }
