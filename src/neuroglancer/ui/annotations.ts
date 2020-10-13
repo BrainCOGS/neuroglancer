@@ -743,6 +743,15 @@ export class AnnotationLayerView extends Tab {
     let val = list.split(',').map(v => parseInt(v, 10));
     return vec3.fromValues(val[0], val[1], val[2]);
   } 
+  // private stringToUint64array = (input: string): Uint64 => {
+  //   // format: [24, 25, 18]
+  //   let raw = input.split('');
+  //   raw.shift();
+  //   raw.pop();
+  //   let list = raw.join('');
+  //   let val = list.split(';').map(v => parseInt(v, 10));
+  //   return vec3.fromValues(val[0], val[1], val[2]);
+  // } 
 
   private async importCSV(files: FileList|null) {
     const rawAnnotations = <Annotation[]>[];
@@ -762,6 +771,7 @@ export class AnnotationLayerView extends Tab {
       const annStrings = rawData.data;
       for (let row=1; row<annStrings.length; ++row) {
         const annProps = annStrings[row]; 
+        const segmentIDstr = annProps[4];
         const type = annProps[6];
         let raw = <Annotation>{id: makeAnnotationId(), description: annProps[3]};
 
@@ -789,6 +799,22 @@ export class AnnotationLayerView extends Tab {
                 `No annotation of type ${type}. Cannot parse ${file.name}:${row} ${annProps}`);
             continue;
           }
+        // segment IDs
+        if (segmentIDstr) {
+          let rawstr = segmentIDstr.split('');
+          let clean = rawstr.join('');
+          let segmentList = clean.split('; ');
+          const relatedSegments: Uint64[][] = [];
+          const segments: Uint64[] = [];
+          let counter = 0; 
+          segmentList.forEach((idString: any) => {
+            let idUint64 = Uint64.parseString(String(idString));  
+            segments[counter] = idUint64;
+            ++counter  
+          });
+          relatedSegments[0] = segments;
+          raw.relatedSegments = relatedSegments;
+        }
         rawAnnotations.push(raw);
         }
       let annotationLayer = this.annotationStates.states[0];
