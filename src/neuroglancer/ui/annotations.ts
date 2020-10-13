@@ -42,7 +42,9 @@ import {setClipboard} from 'neuroglancer/util/clipboard';
 import {Borrowed, disposableOnce, Owned, RefCounted} from 'neuroglancer/util/disposable';
 import {removeChildren, removeFromParent, updateChildren} from 'neuroglancer/util/dom';
 import {ValueOrError} from 'neuroglancer/util/error';
+// import {mat4, transformVectorByMat4, vec3} from 'neuroglancer/util/geom';
 import {vec3} from 'neuroglancer/util/geom';
+
 import {verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyString} from 'neuroglancer/util/json';
 import {EventActionMap, KeyboardEventBinder, registerActionListener} from 'neuroglancer/util/keyboard_bindings';
 import * as matrix from 'neuroglancer/util/matrix';
@@ -61,6 +63,7 @@ import {makeFilterButton} from 'neuroglancer/widget/filter_button';
 import {makeIcon} from 'neuroglancer/widget/icon';
 import {makeMoveToButton} from 'neuroglancer/widget/move_to_button';
 import {Tab} from 'neuroglancer/widget/tab_view';
+
 // import { SegmentLabelMap } from '../segmentation_display_state/property_map';
 
 const Papa = require('papaparse');
@@ -514,6 +517,28 @@ export class AnnotationLayerView extends Tab {
     exportToCSVButton.addEventListener('click', () => {
         this.exportToCSV();
       });
+
+    const importCSVButton = document.createElement('button');
+    // const importCSVForm = document.createElement('form');
+    const importCSVFileSelect = document.createElement('input');
+    importCSVButton.id = 'importCSVButton';
+    importCSVButton.textContent = 'Import from CSV';
+    importCSVFileSelect.type = 'file';
+    importCSVFileSelect.accept = 'text/csv';
+    importCSVFileSelect.multiple = true;
+    importCSVButton.addEventListener('click', () => {
+        importCSVFileSelect.click();
+      });
+    // importCSVForm.appendChild(importCSVFileSelect);
+    importCSVFileSelect.addEventListener('change', () => {
+      this.importCSV(importCSVFileSelect.files);
+    //   importCSVForm.reset();
+    });
+    // importCSVFileSelect.classList.add('neuroglancer-hidden-button');
+    const csvContainer = document.createElement('span');
+    csvContainer.append(exportToCSVButton, importCSVButton);
+    // this.groupAnnotations.appendFixedChild(csvContainer);
+
     layer.initializeAnnotationLayerViewTab(this);
     const colorPicker = this.registerDisposer(new ColorWidget(this.displayState.color));
     colorPicker.element.title = 'Change annotation display color';
@@ -561,7 +586,7 @@ export class AnnotationLayerView extends Tab {
     mutableControls.appendChild(ellipsoidButton);
     toolbox.appendChild(mutableControls);
     this.element.appendChild(toolbox);
-    this.element.appendChild(exportToCSVButton);
+    this.element.appendChild(csvContainer);
 
     this.element.appendChild(this.listContainer);
     this.listContainer.addEventListener('mouseleave', () => {
@@ -700,6 +725,160 @@ export class AnnotationLayerView extends Tab {
     link.click();
     document.body.removeChild(link);
   }
+  // private betterPapa = (inputFile: File|Blob): Promise<any> => {
+  //   return new Promise((resolve) => {
+  //     Papa.parse(inputFile, {
+  //       complete: (results: any) => {
+  //         resolve(results);
+  //       }
+  //     });
+  //   });
+  // }
+  // private stringToVec3 = (input: string): vec3 => {
+  //   // format: (x, y, z)
+  //   let raw = input.split('');
+  //   raw.shift();
+  //   raw.pop();
+  //   let list = raw.join('');
+  //   let val = list.split(',').map(v => parseInt(v, 10));
+  //   return vec3.fromValues(val[0], val[1], val[2]);
+  // } 
+  // private dimensionsToVec3 = (input: string): vec3 => {
+  //   // format: A × B × C
+  //   let raw = input.replace(/s/g, '');
+  //   let val = raw.split('×').map(v => parseInt(v, 10));
+  //   return vec3.fromValues(val[0], val[1], val[2]);
+  // }
+  private async importCSV(files: FileList|null) {
+    console.log(files);
+  }
+  //   const rawAnnotations = <Annotation[]>[];
+  //   let successfulImport = 0;
+
+  //   if (!files) {
+  //     return;
+  //   }
+
+  //   for (const file of files) {
+  //     const rawData = await this.betterPapa(file);
+  //     rawData.data = rawData.data.filter((v: any) => v.join('').length);
+  //     if (!rawData.data.length) {
+  //       continue;
+  //     }
+  //     const annStrings = rawData.data;
+  //     const csvIdToRealAnnotationIdMap: {[key: string]: string} = {};
+  //     const childStorage: {[key: string]: string[]} = {};
+  //     const textToPoint = (point: string, transform: mat4, dimension?: boolean) => {
+  //       const parsedVec = dimension ? this.dimensionsToVec3(point) : this.stringToVec3(point);
+  //       // const spatialPoint = this.voxelSize.spatialFromVoxel(tempVec3, parsedVec);
+  //       return vec3.transformMat4(vec3.create(), parsedVec, transform);
+  //     };
+  //     let row = -1;
+  //     for (const annProps of annStrings) {
+  //       row++;
+  //       const type = annProps[7];
+  //       const parentId = annProps[6];
+  //       const annotationID: string|undefined = annProps[8];
+  //       const tags = annProps[3];
+  //       let raw = <Annotation>{id: makeAnnotationId(), description: annProps[4]};
+
+  //       switch (type) {
+  //         case 'AABB':
+  //         case 'Line':
+  //           raw.type =
+  //               type === 'Line' ? AnnotationType.LINE : AnnotationType.AXIS_ALIGNED_BOUNDING_BOX;
+  //           (<Line>raw).pointA = textToPoint(annProps[0], this.annotationLayer.globalToObject);
+  //           (<Line>raw).pointB = textToPoint(annProps[1], this.annotationLayer.globalToObject);
+  //           break;
+  //         case 'Point':
+  //           raw.type = AnnotationType.POINT;
+  //           (<Point>raw).point = textToPoint(annProps[0], this.annotationLayer.globalToObject);
+  //           break;
+  //         case 'Ellipsoid':
+  //           raw.type = AnnotationType.ELLIPSOID;
+  //           (<Ellipsoid>raw).center = textToPoint(annProps[0], this.annotationLayer.globalToObject);
+  //           (<Ellipsoid>raw).radii =
+  //               textToPoint(annProps[2], this.annotationLayer.globalToObject, true);
+  //           break;
+  //         case 'Line Strip':
+  //         case 'Line Strip*':
+  //         case 'Spoke':
+  //         case 'Spoke*':
+  //         case 'Collection':
+  //           if (type === 'Line Strip' || type === 'Line Strip*') {
+  //             raw.type = AnnotationType.LINE_STRIP;
+  //             (<LineStrip>raw).connected = true;
+  //             (<LineStrip>raw).looped = type === 'Line Strip*';
+  //           } else if (type === 'Spoke' || type === 'Spoke*') {
+  //             raw.type = AnnotationType.SPOKE;
+  //             (<Spoke>raw).connected = true;
+  //             (<Spoke>raw).wheeled = type === 'Spoke*';
+  //           } else {
+  //             raw.type = AnnotationType.COLLECTION;
+  //             (<Collection>raw).connected = false;
+  //           }
+  //           (<Collection>raw).childrenVisible = new TrackableBoolean(false, true);
+  //           (<Collection>raw).source =
+  //               textToPoint(annProps[0], this.annotationLayer.globalToObject);
+  //           (<Collection>raw).entry = (index: number) =>
+  //               (<LocalAnnotationSource>this.annotationLayer.source)
+  //                   .get((<Collection>raw).entries[index]);
+  //           break;
+  //         default:
+  //           // Do not add annotation row, if it has unexpected type
+  //           console.error(
+  //               `No annotation of type ${type}. Cannot parse ${file.name}:${row} ${annProps}`);
+  //           continue;
+  //       }
+
+  //       if (annotationID) {
+  //         if (csvIdToRealAnnotationIdMap[annotationID]) {
+  //           raw.id = csvIdToRealAnnotationIdMap[annotationID];
+  //           (<Collection>raw).entries = childStorage[raw.id];
+  //         } else {
+  //           csvIdToRealAnnotationIdMap[annotationID] = raw.id;
+  //           (<Collection>raw).entries = [];
+  //           childStorage[raw.id] = (<Collection>raw).entries;
+  //         }
+  //       }
+
+  //       if (parentId) {
+  //         if (csvIdToRealAnnotationIdMap[parentId]) {
+  //           raw.parentId = csvIdToRealAnnotationIdMap[parentId];
+  //           childStorage[raw.parentId].push(raw.id);
+  //         } else {
+  //           raw.parentId = makeAnnotationId();
+  //           csvIdToRealAnnotationIdMap[parentId] = raw.parentId;
+  //           if (childStorage[raw.parentId]) {
+  //             childStorage[raw.parentId].push(raw.id);
+  //           } else {
+  //             childStorage[raw.parentId] = [raw.id];
+  //           }
+  //         }
+  //       }
+
+  //       if (tags) {
+  //         raw.tagIds = new Set();
+  //         const labels = tags.split(',');
+  //         const alayer = (<AnnotationSource>this.annotationLayer.source);
+  //         const currentTags = Array.from(alayer.getTags());
+  //         labels.forEach((label: string) => {
+  //           const tagId = (currentTags.find(tag => tag.label === label) || <any>{}).id ||
+  //               alayer.addTag(label);
+  //           raw.tagIds!.add(tagId);
+  //         });
+  //       }
+  //       // Segments not supported
+
+  //       rawAnnotations.push(raw);
+  //     }
+  //     successfulImport++;
+  //   }
+
+  //   this.annotationLayer.source.addAll(rawAnnotations, true);
+  //   // TODO: Undoable
+  //   StatusMessage.showTemporaryMessage(`Imported ${successfulImport} csv(s).`, 3000);
+  // }
 
   private clearHoverClass() {
     const {previousHoverId, previousHoverAnnotationLayerState} = this;
