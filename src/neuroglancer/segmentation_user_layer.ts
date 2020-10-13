@@ -640,6 +640,9 @@ export class SegmentationUserLayer extends Base {
       const index = propertyMap.inlineIdToIndex![mappedIdString];
       if (index === undefined) continue;
       for (const property of inlineProperties.properties) {
+        console.log(property.type);
+        console.log(property.values);
+        console.log(index);
         if (property.type === 'label') continue;
         if (property.type === 'description') {
           const value = property.values[index];

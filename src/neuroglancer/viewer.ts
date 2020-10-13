@@ -630,7 +630,7 @@ export class Viewer extends RefCounted implements ViewerState {
    */
   private registerActionListeners() {
     for (const action of ['recolor', 'clear-segments','increase-contrast',
-      'decrease-contrast','invert-colormap']) {
+      'decrease-contrast','invert-colormap','show-metadata']) {
       this.bindAction(action, () => {
         this.layerManager.invokeAction(action);
       });
@@ -644,7 +644,7 @@ export class Viewer extends RefCounted implements ViewerState {
     }
 
     this.bindAction('help', () => this.showHelpDialog());
-
+    this.bindAction('show-metadata', () => this.showMetadata());
     for (let i = 1; i <= 9; ++i) {
       this.bindAction(`toggle-layer-${i}`, () => {
         const layerIndex = i - 1;
@@ -704,6 +704,9 @@ export class Viewer extends RefCounted implements ViewerState {
     ]);
   }
 
+  showMetadata() {
+    alert("Yow!")
+  }
   editJsonState() {
     new StateEditorDialog(this);
   }

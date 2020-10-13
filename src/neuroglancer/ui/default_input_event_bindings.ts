@@ -32,6 +32,8 @@ export function getDefaultGlobalBindings() {
     map.set('keyi', 'invert-colormap');
     map.set('keyf', 'increase-contrast');
     map.set('keyd', 'decrease-contrast');
+    map.set('keyd', 'decrease-contrast');
+    map.set('keym', 'show-metadata');
 
     for (let i = 1; i <= 9; ++i) {
       map.set('digit' + i, 'toggle-layer-' + i);
