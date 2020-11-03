@@ -52,6 +52,7 @@ export interface SliceViewSegmentationDisplayState extends SegmentationDisplaySt
   notSelectedAlpha: TrackableAlphaValue;
   hideSegmentZero: TrackableBoolean;
   ignoreNullVisibleSet: TrackableBoolean;
+  setSegmentsBlack: TrackableBoolean;
 }
 
 interface ShaderParameters {
@@ -59,6 +60,7 @@ interface ShaderParameters {
   hasSegmentStatedColors: boolean;
   hasHighlightedSegments: boolean;
   hideSegmentZero: boolean;
+  setSegmentsBlack: boolean;
 }
 
 export class SegmentationRenderLayer extends SliceViewVolumeRenderLayer<ShaderParameters> {
@@ -92,6 +94,7 @@ export class SegmentationRenderLayer extends SliceViewVolumeRenderLayer<ShaderPa
             hasSegmentStatedColors: refCounted.registerDisposer(makeCachedDerivedWatchableValue(
                 x => x.size !== 0, [displayState.segmentStatedColors])),
             hideSegmentZero: displayState.hideSegmentZero,
+            setSegmentsBlack: displayState.setSegmentsBlack,
           })),
       transform: displayState.transform,
       renderScaleHistogram: displayState.renderScaleHistogram,
@@ -196,9 +199,15 @@ uint64_t getMappedObjectId() {
 `;
     }
 
-    fragmentMain += `
-  emit(vec4(mix(vec3(1.0,1.0,1.0), rgb, saturation), alpha));
+    if (parameters.setSegmentsBlack) {
+      fragmentMain += `
+   emit(vec4(mix(vec3(0.0,0.0,0.0), vec3(255.0,255.0,255.0), saturation), alpha));
 `;
+    }
+    else {
+    fragmentMain += `
+  emit(vec4(mix(vec3(1.0,1.0,1.0), rgb, saturation), alpha));`;
+    }
     builder.setFragmentMain(fragmentMain);
   }
 
