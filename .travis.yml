@@ -58,8 +58,8 @@ matrix:
         config: "./appengine/frontend/app.yaml"
         no_stop_previous_version: false
       
-# install:
-#   - pip install tox-travis
-# script:
-#   - cd python
+install:
+  - pip install tox-travis
+script:
+  - cd python
 #   - tox -vvvvvvv
