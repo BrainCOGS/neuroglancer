@@ -460,6 +460,8 @@ export class SegmentationUserLayer extends Base {
   handleAction(action: string) {
     switch (action) {
       case 'recolor': {
+         StatusMessage.showTemporaryMessage('recoloring',
+                  3000);
         this.displayState.segmentColorHash.randomize();
         break;
       }
