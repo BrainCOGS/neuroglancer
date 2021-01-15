@@ -31,7 +31,7 @@ matrix:
         - openssl aes-256-cbc -K $encrypted_994f9713e3f3_key -iv $encrypted_994f9713e3f3_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d
         - tar -zxvf credentials.tar.gz
         - sudo mkdir /secrets 
-        - sudo mv alpine-dogfish-285314-729e53aa7e31.json /secrets 
+        - sudo mv pni-brinacogs-mouse-atlas-617c5e6a1127.json /secrets 
         - rm credentials.tar.gz
       install:
         - npm install
@@ -47,10 +47,10 @@ matrix:
       deploy:
       - provider: gae
         skip_cleanup: true
-        keyfile: "/secrets/alpine-dogfish-285314-729e53aa7e31.json"
-        project: alpine-dogfish-285314
+        keyfile: "/secrets/pni-brinacogs-mouse-atlas-617c5e6a1127.json"
+        project: pni-brinacogs-mouse-atlas
         on: master
-        no_promote: false # promotes latest deploy build to receive all traffic
+        no_promote: false # false promotes latest deploy build to receive all traffic
         default: true
         verbosity: error
         config: "./appengine/frontend/app.yaml"
