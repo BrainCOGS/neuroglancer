@@ -11,3 +11,4 @@ __pycache__
 .vscode
 secrets
 secrets_testaccount
+secrets_old
