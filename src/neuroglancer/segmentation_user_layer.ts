@@ -73,6 +73,7 @@ const OBJECT_ALPHA_JSON_KEY = 'objectAlpha';
 const SATURATION_JSON_KEY = 'saturation';
 const HIDE_SEGMENT_ZERO_JSON_KEY = 'hideSegmentZero';
 const SET_SEGMENTS_BLACK_JSON_KEY = 'setSegmentsBlack';
+const SET_SEGMENTS_GRAYSCALE_JSON_KEY = 'setSegmentsGrayScale';
 const IGNORE_NULL_VISIBLE_SET_JSON_KEY = 'ignoreNullVisibleSet';
 const MESH_JSON_KEY = 'mesh';
 const SKELETONS_JSON_KEY = 'skeletons';
@@ -141,6 +142,7 @@ export class SegmentationUserLayer extends Base {
     hideSegmentZero: new TrackableBoolean(true, true),
     ignoreNullVisibleSet: new TrackableBoolean(true, true),
     setSegmentsBlack: new TrackableBoolean(true, false),
+    setSegmentsGrayScale: new TrackableBoolean(true, false),
     visibleSegments: Uint64Set.makeWithCounterpart(this.manager.worker),
     highlightedSegments: Uint64Set.makeWithCounterpart(this.manager.worker),
     segmentEquivalences: SharedDisjointUint64Sets.makeWithCounterpart(this.manager.worker),
@@ -168,6 +170,7 @@ export class SegmentationUserLayer extends Base {
     this.displayState.objectAlpha.changed.add(this.specificationChanged.dispatch);
     this.displayState.hideSegmentZero.changed.add(this.specificationChanged.dispatch);
     this.displayState.setSegmentsBlack.changed.add(this.specificationChanged.dispatch);
+    this.displayState.setSegmentsGrayScale.changed.add(this.specificationChanged.dispatch);
     this.displayState.ignoreNullVisibleSet.changed.add(this.specificationChanged.dispatch);
     this.displayState.skeletonRenderingOptions.changed.add(this.specificationChanged.dispatch);
     this.displayState.segmentColorHash.changed.add(this.specificationChanged.dispatch);
@@ -332,6 +335,7 @@ export class SegmentationUserLayer extends Base {
     this.displayState.objectAlpha.restoreState(specification[OBJECT_ALPHA_JSON_KEY]);
     this.displayState.hideSegmentZero.restoreState(specification[HIDE_SEGMENT_ZERO_JSON_KEY]);
     this.displayState.setSegmentsBlack.restoreState(specification[SET_SEGMENTS_BLACK_JSON_KEY]);
+    this.displayState.setSegmentsGrayScale.restoreState(specification[SET_SEGMENTS_GRAYSCALE_JSON_KEY]);
     this.displayState.silhouetteRendering.restoreState(
         specification[MESH_SILHOUETTE_RENDERING_JSON_KEY]);
     this.displayState.ignoreNullVisibleSet.restoreState(
@@ -395,6 +399,7 @@ export class SegmentationUserLayer extends Base {
     x[HIDE_SEGMENT_ZERO_JSON_KEY] = this.displayState.hideSegmentZero.toJSON();
     x[IGNORE_NULL_VISIBLE_SET_JSON_KEY] = this.displayState.ignoreNullVisibleSet.toJSON();
     x[SET_SEGMENTS_BLACK_JSON_KEY] = this.displayState.setSegmentsBlack.toJSON();
+    x[SET_SEGMENTS_GRAYSCALE_JSON_KEY] = this.displayState.setSegmentsGrayScale.toJSON();
     x[COLOR_SEED_JSON_KEY] = this.displayState.segmentColorHash.toJSON();
     x[MESH_SILHOUETTE_RENDERING_JSON_KEY] = this.displayState.silhouetteRendering.toJSON();
     let {segmentStatedColors} = this.displayState;
@@ -779,6 +784,18 @@ class DisplayOptionsTab extends Tab {
       label.className =
           'neuroglancer-segmentation-dropdown-set-segments-black neuroglancer-noselect';
       label.appendChild(document.createTextNode('Set all segments black/white'));
+      label.appendChild(checkbox.element);
+      element.appendChild(label);
+    }
+    {
+      const checkbox =
+          this.registerDisposer(new TrackableBooleanCheckbox(layer.displayState.setSegmentsGrayScale));
+      checkbox.element.className =
+          'neuroglancer-segmentation-dropdown-set-segments-grayscale neuroglancer-noselect';
+      const label = document.createElement('label');
+      label.className =
+          'neuroglancer-segmentation-dropdown-set-segments-grayscale neuroglancer-noselect';
+      label.appendChild(document.createTextNode('Use grayscale color scheme'));
       label.appendChild(checkbox.element);
       element.appendChild(label);
     }
