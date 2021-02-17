@@ -203,7 +203,8 @@ uint64_t getMappedObjectId() {
     }
     if (parameters.setSegmentsGrayScale) {
       fragmentMain += `
-    emit(vec4(mix(vec3(0.0,0.0,0.0), vec3(rgb[0],rgb[0],rgb[0]), saturation), alpha));
+      float grayval = (rgb[0]+rgb[1]+rgb[2])/3.0;
+    emit(vec4(mix(vec3(0.0,0.0,0.0), vec3(grayval,grayval,grayval), saturation), alpha));
 `;
     }
     else if (parameters.setSegmentsBlack) {
