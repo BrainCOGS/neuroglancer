@@ -240,11 +240,13 @@ export class MeshShaderManager {
   makeGetter(layer: RefCounted&{gl: GL, displayState: MeshDisplayState}) {
     const silhouetteRenderingEnabled = layer.registerDisposer(
         makeCachedDerivedWatchableValue(x => x > 0, [layer.displayState.silhouetteRendering]));
+    const setSegmentsGrayScale = layer.registerDisposer(
+        makeCachedDerivedWatchableValue(x => x == true, [layer.displayState.setSegmentsGrayScale]));
     return parameterizedEmitterDependentShaderGetter(layer, layer.gl, {
       memoizeKey:
           `mesh/MeshShaderManager/${this.fragmentRelativeVertices}/${this.vertexPositionFormat}`,
-      parameters: silhouetteRenderingEnabled,
-      defineShader: (builder, silhouetteRenderingEnabled) => {
+      parameters: silhouetteRenderingEnabled, extraParameters:setSegmentsGrayScale,
+      defineShader: (builder, silhouetteRenderingEnabled,setSegmentsGrayScale) => {
         this.vertexPositionHandler.defineShader(builder);
         builder.addAttribute('highp vec2', 'aVertexNormal');
         builder.addVarying('highp vec4', 'vColor');
@@ -286,6 +288,12 @@ vColor = vec4(lightingFactor * uColor.rgb, uColor.a);
 vColor *= pow(1.0 - absCosAngle, uSilhouettePower);
 `;
         }
+        if (setSegmentsGrayScale) {
+          vertexMain += `
+float grayval = lightingFactor*(uColor.rgb[0]+uColor.rgb[1]+uColor.rgb[2])/3.0;
+vColor = vec4(grayval,grayval, grayval, uColor.a);
+`;
+        }
         builder.setVertexMain(vertexMain);
         builder.setFragmentMain(`emit(vColor, uPickID);`);
       },
@@ -295,6 +303,7 @@ vColor *= pow(1.0 - absCosAngle, uSilhouettePower);
 
 export interface MeshDisplayState extends SegmentationDisplayState3D {
   silhouetteRendering: WatchableValueInterface<number>;
+  setSegmentsGrayScale: WatchableValueInterface<boolean>;
 }
 
 export class MeshLayer extends
