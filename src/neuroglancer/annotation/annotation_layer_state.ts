@@ -77,8 +77,10 @@ export class WatchableAnnotationRelationshipStates extends
 }
 
 const DEFAULT_FRAGMENT_MAIN = `
+#uicontrol float size slider(min=0, max=20, default=8)
 void main() {
   setColor(defaultColor());
+  setPointMarkerSize(size);
 }
 `;
 
