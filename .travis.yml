@@ -49,7 +49,6 @@ jobs:
         project: neuroglancer-braincogs
         on: master
         promote: false 
-        default: true
         edge: true
         verbosity: warning
         config: "./appengine/frontend/app.yaml"
